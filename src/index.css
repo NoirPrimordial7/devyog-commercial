@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #f2efe8;
+  background: #080a0b;
+  font-family: "Manrope Variable", Arial, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-snap-type: y proximity;
+  background: #080a0b;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  overflow-x: hidden;
+  background: #080a0b;
+}
+
+#experience,
+#project-visualization,
+#offerings,
+#investor-options,
+#contact,
+footer {
+  scroll-snap-align: start;
+  scroll-snap-stop: normal;
+}
+
+::selection {
+  color: #080a0b;
+  background: #c8a96a;
+}
+
+::-webkit-scrollbar {
+  width: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: #080a0b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4d4332;
+  border-radius: 999px;
+}
+
+@layer components {
+  .hero-serif {
+    font-family: "Bodoni 72", "Bodoni MT", Didot, "Times New Roman", serif;
+    font-weight: 400;
+    font-variation-settings: "opsz" 72;
+    text-rendering: geometricPrecision;
+  }
+
+  .gold-type {
+    color: #c99a69;
+    background: linear-gradient(180deg, #e1bc8c 0%, #a8744d 52%, #dfad77 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .feature-tag {
+    @apply inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/30 px-3 py-2 text-[8px] font-semibold uppercase tracking-[0.13em] text-white/85 shadow-2xl backdrop-blur-lg md:px-4 md:text-[9px];
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}

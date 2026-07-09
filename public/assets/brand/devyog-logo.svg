@@ -1,0 +1,27 @@
+<svg width="220" height="72" viewBox="0 0 220 72" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">DEVYOG Builders and Developers</title>
+  <desc id="desc">A luxury gold geometric DEVYOG brand mark with wordmark.</desc>
+  <defs>
+    <linearGradient id="gold" x1="18" y1="3" x2="96" y2="70" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F0D099"/>
+      <stop offset="0.48" stop-color="#B4864D"/>
+      <stop offset="1" stop-color="#D7AE68"/>
+    </linearGradient>
+    <linearGradient id="softGold" x1="74" y1="25" x2="191" y2="50" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E7C58F"/>
+      <stop offset="1" stop-color="#A97845"/>
+    </linearGradient>
+  </defs>
+
+  <g fill="url(#gold)">
+    <path d="M42.6 5.2 13.1 22.4l3.4 5.6L42.6 12.7 69 28l3.4-5.6L42.6 5.2Z"/>
+    <path d="M16.5 31.6 42.6 16.4l26.5 15.3-3.5 5.5-23-13.2L20 37.1l-3.5-5.5Z"/>
+    <path d="M33.6 31.3h7.1v21.5h-7.1V31.3Z"/>
+    <path d="M44.5 31.3h7.1v21.5h-7.1V31.3Z"/>
+    <path d="M24.1 56.8h37.2v6.3H24.1v-6.3Z"/>
+    <path d="M63.5 38.6h6.2v24.5h-6.2V38.6Z"/>
+  </g>
+
+  <text x="82" y="43" fill="url(#softGold)" font-family="Manrope, Arial, sans-serif" font-size="22" font-weight="500" letter-spacing="5.8">DEVYOG</text>
+  <text x="83" y="58" fill="#D7AE68" font-family="Manrope, Arial, sans-serif" font-size="6.8" font-weight="700" letter-spacing="1.6">BUILDERS &amp; DEVELOPERS</text>
+</svg>
