@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrthographicCamera, useTexture } from "@react-three/drei";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useMotionValueEvent, useScroll, useTransform } from "framer-motion";
 import * as THREE from "three";
 
 const vertexShader = `
@@ -128,7 +128,7 @@ const fragmentShader = `
 function BurnPlane({ image, progress }) {
   const texture = useTexture(image);
   const materialRef = useRef(null);
-  const { size } = useThree();
+  const { size, invalidate } = useThree();
 
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.minFilter = THREE.LinearFilter;
@@ -149,6 +149,13 @@ function BurnPlane({ image, progress }) {
     }),
     [texture, size]
   );
+
+  useEffect(() => {
+    const unsubscribe = progress.on("change", () => invalidate());
+    invalidate();
+
+    return unsubscribe;
+  }, [progress, invalidate]);
 
   useFrame((state) => {
     if (!materialRef.current) return;
@@ -183,38 +190,47 @@ function BurnPlane({ image, progress }) {
 
 export function GoldBurnTransition({ children }) {
   const sectionRef = useRef(null);
+  const [renderBurn, setRenderBurn] = useState(true);
   const { scrollYProgress } = useScroll({
     target: sectionRef,
-    offset: ["start end", "start start"],
+    offset: ["start start", "end start"],
   });
-  const burnProgress = useTransform(scrollYProgress, [0.04, 0.92], [0, 1]);
-  const overlayOpacity = useTransform(scrollYProgress, [0, 0.9, 1], [1, 1, 0]);
+  const burnProgress = useTransform(scrollYProgress, [0.06, 0.78], [0, 1]);
+  const overlayOpacity = useTransform(scrollYProgress, [0.74, 0.93], [1, 0]);
+
+  useMotionValueEvent(scrollYProgress, "change", (latest) => {
+    const shouldRender = latest < 0.97;
+    setRenderBurn((current) => (current === shouldRender ? current : shouldRender));
+  });
 
   return (
     <section
       id="gold-burn-transition"
       ref={sectionRef}
-      className="relative min-h-[100svh] overflow-clip"
+      className="relative h-[145svh] min-h-[920px] overflow-visible sm:h-[150svh]"
       aria-label="Gold pixel burn transition"
     >
-      <div className="relative z-0 min-h-[100svh]">{children}</div>
+      <div className="sticky top-0 min-h-[100svh] overflow-hidden">
+        <div className="relative z-0 min-h-[100svh]">{children}</div>
 
-      <motion.div
-        aria-hidden="true"
-        style={{ opacity: overlayOpacity }}
-        className="pointer-events-none absolute inset-0 z-20 overflow-hidden"
-      >
-        <div className="absolute inset-0 z-10">
-          <Canvas
-            className="h-full w-full"
-            dpr={[1, 1.75]}
-            gl={{ alpha: true, antialias: false, powerPreference: "high-performance" }}
+        {renderBurn && (
+          <motion.div
+            aria-hidden="true"
+            style={{ opacity: overlayOpacity }}
+            className="pointer-events-none absolute inset-0 z-20 overflow-hidden"
           >
-            <OrthographicCamera makeDefault position={[0, 0, 1]} zoom={1} />
-            <BurnPlane image="/assets/hero/05.png" progress={burnProgress} />
-          </Canvas>
-        </div>
-      </motion.div>
+            <Canvas
+              className="h-full w-full"
+              frameloop="demand"
+              dpr={[1, 1.25]}
+              gl={{ alpha: true, antialias: false, powerPreference: "high-performance" }}
+            >
+              <OrthographicCamera makeDefault position={[0, 0, 1]} zoom={1} />
+              <BurnPlane image="/assets/hero/05.png" progress={burnProgress} />
+            </Canvas>
+          </motion.div>
+        )}
+      </div>
     </section>
   );
 }

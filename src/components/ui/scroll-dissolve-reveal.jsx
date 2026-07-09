@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef, useMemo } from "react";
+import React, { useEffect, useRef, useMemo } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useTexture, OrthographicCamera } from "@react-three/drei";
 import * as THREE from "three";
@@ -270,7 +270,7 @@ const Scene = ({
   const [texture1, texture2] = useTexture([imageFront, imageBack]);
   const material1Ref = useRef(null);
   const material2Ref = useRef(null);
-  const { size } = useThree();
+  const { size, invalidate } = useThree();
 
   const uniforms1 = useMemo(() => ({
     uTexture: { value: texture1 },
@@ -300,6 +300,13 @@ const Scene = ({
     uDarkness: { value: 1.0 },
     uGrayscale: { value: 1.0 },
   }), [texture2, size]);
+
+  useEffect(() => {
+    const unsubscribe = scrollYProgress.on("change", () => invalidate());
+    invalidate();
+
+    return unsubscribe;
+  }, [scrollYProgress, invalidate]);
 
   useFrame((state) => {
     const timeInSeconds = state.clock.getElapsedTime();
@@ -376,7 +383,11 @@ export function ScrollDissolveReveal({
       <div
         className={cn("sticky top-0 h-[100svh] min-h-[640px] w-full origin-center overflow-hidden will-change-transform sm:min-h-[680px]", className)}
       >
-        <Canvas>
+        <Canvas
+          frameloop="demand"
+          dpr={[1, 1.25]}
+          gl={{ antialias: false, powerPreference: "high-performance" }}
+        >
           <OrthographicCamera
             makeDefault
             manual
