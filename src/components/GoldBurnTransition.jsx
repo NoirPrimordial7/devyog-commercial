@@ -91,6 +91,7 @@ const fragmentShader = `
     vec2 uv = coverUv(vUv);
     vec4 tex = texture2D(uTexture, uv);
 
+    float etchAmount = smoothstep(0.02, 0.28, uProgress);
     float gray = burnLuma(tex.rgb);
     vec3 etchedImage = mix(tex.rgb, vec3(gray), 0.82);
     etchedImage = mix(etchedImage, vec3(0.018, 0.019, 0.018), 0.42);
@@ -112,9 +113,9 @@ const fragmentShader = `
 
     vec3 gold = vec3(1.0, 0.69, 0.30);
     vec3 amber = vec3(0.78, 0.45, 0.14);
-    vec3 finalColor = etchedImage;
+    vec3 finalColor = mix(tex.rgb, etchedImage, etchAmount);
 
-    finalColor += gold * contour * keepMask * (0.35 + uEdgeIntensity * 0.55);
+    finalColor += gold * contour * keepMask * etchAmount * (0.22 + uEdgeIntensity * 0.38);
     finalColor += gold * edgeBand * uEdgeIntensity * 1.9;
     finalColor += amber * sparkle * uEdgeIntensity * 2.7;
 
@@ -201,7 +202,7 @@ function useSectionProgress(targetRef) {
 
       const rect = target.getBoundingClientRect();
       const start = rect.top + window.scrollY;
-      const travel = Math.max(1, target.offsetHeight);
+      const travel = Math.max(1, target.offsetHeight - window.innerHeight);
       progress.set(THREE.MathUtils.clamp((window.scrollY - start) / travel, 0, 1));
     };
 
@@ -223,21 +224,26 @@ function useSectionProgress(targetRef) {
   return progress;
 }
 
-export function GoldBurnTransition({ children }) {
+export function GoldBurnTransition({ children, frontOverlay }) {
   const sectionRef = useRef(null);
   const scrollYProgress = useSectionProgress(sectionRef);
-  const burnProgress = useTransform(scrollYProgress, [0.06, 0.78], [0, 1]);
-  const overlayOpacity = useTransform(scrollYProgress, [0.74, 0.93], [1, 0]);
+  const burnProgress = useTransform(scrollYProgress, [0.08, 0.82], [0, 1]);
+  const overlayOpacity = useTransform(scrollYProgress, [0.86, 1], [1, 0]);
+  const frontOverlayOpacity = useTransform(
+    scrollYProgress,
+    [0, 0.08, 0.24],
+    [1, 1, 0],
+  );
 
   return (
     <section
       id="gold-burn-transition"
       ref={sectionRef}
-      className="relative h-[145svh] min-h-[920px] overflow-visible sm:h-[150svh]"
+      className="relative z-20 h-[210svh] overflow-visible"
       aria-label="Gold pixel burn transition"
     >
-      <div className="sticky top-0 min-h-[100svh] overflow-hidden">
-        <div className="relative z-0 min-h-[100svh]">{children}</div>
+      <div className="sticky top-0 h-[100svh] overflow-hidden">
+        <div className="relative z-0 h-[100svh]">{children}</div>
 
         <motion.div
           aria-hidden="true"
@@ -247,7 +253,7 @@ export function GoldBurnTransition({ children }) {
             <Canvas
               className="h-full w-full"
               frameloop="demand"
-              dpr={[1, 1.25]}
+              dpr={1}
               gl={{ alpha: true, antialias: false, powerPreference: "high-performance" }}
             >
               <OrthographicCamera
@@ -264,6 +270,15 @@ export function GoldBurnTransition({ children }) {
               <BurnPlane image="/assets/hero/05.png" progress={burnProgress} />
             </Canvas>
         </motion.div>
+
+        {frontOverlay && (
+          <motion.div
+            style={{ opacity: frontOverlayOpacity }}
+            className="pointer-events-none absolute inset-0 z-30 overflow-hidden"
+          >
+            {frontOverlay}
+          </motion.div>
+        )}
       </div>
     </section>
   );

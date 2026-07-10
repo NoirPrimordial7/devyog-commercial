@@ -81,10 +81,10 @@ const featureHighlights = [
   },
 ];
 
-function FeatureRail({ opacity }) {
+function FeatureRail({ opacity, animateIn = true }) {
   return (
     <motion.aside
-      initial={{ x: -22 }}
+      initial={animateIn ? { x: -22 } : false}
       animate={{ x: 0 }}
       transition={{ delay: 0.55, duration: 1.05, ease: [0.2, 0.8, 0.2, 1] }}
       style={{ opacity }}
@@ -130,6 +130,30 @@ function FeatureRail({ opacity }) {
   );
 }
 
+export function MixedUseBurnOverlay({ opacity = 1 }) {
+  return (
+    <motion.div
+      style={{ opacity }}
+      className="pointer-events-none absolute inset-0 z-30 overflow-hidden"
+      aria-hidden="true"
+    >
+      <FeatureRail opacity={1} animateIn={false} />
+      <div className="absolute inset-0 z-10 bg-[linear-gradient(180deg,rgba(3,7,12,.18)_0%,rgba(3,7,12,0)_43%,rgba(3,7,12,.36)_100%)]" />
+      <div className="absolute inset-0 z-10 bg-[radial-gradient(circle_at_50%_50%,transparent_18%,rgba(1,4,8,.22)_100%)]" />
+      <div className="absolute inset-x-0 top-[21%] z-20 flex justify-center px-4 sm:top-[18%] lg:top-[14%]">
+        <LuxuryHeadline variant="interior" />
+      </div>
+      <img
+        src="/assets/hero/08.png"
+        alt=""
+        decoding="async"
+        draggable="false"
+        className="absolute inset-0 z-30 h-full w-full object-cover object-center"
+      />
+    </motion.div>
+  );
+}
+
 export function LayeredHeroExperience() {
   const experience = useRef(null);
   const { scrollYProgress } = useScroll({
@@ -151,22 +175,22 @@ export function LayeredHeroExperience() {
 
   const interiorOpacity = useTransform(
     smoothProgress,
-    [0.68, 0.9],
+    [0.62, 0.79],
     [0, 1],
   );
   const interiorTextY = useTransform(
     smoothProgress,
-    [0.68, 0.93],
+    [0.65, 0.82],
     ["6%", "0%"],
   );
   const interiorTextOpacity = useTransform(
     smoothProgress,
-    [0.7, 0.9],
+    [0.67, 0.82],
     [0, 1],
   );
   const featureRailOpacity = useTransform(
     smoothProgress,
-    [0, 0.46, 0.64, 0.82, 1],
+    [0, 0.44, 0.6, 0.78, 1],
     [1, 0.92, 0, 0.92, 1],
   );
   const scrollLine = useTransform(smoothProgress, [0, 1], [0, 1]);
@@ -180,19 +204,19 @@ export function LayeredHeroExperience() {
     <main
       ref={experience}
       id="experience"
-      className="relative h-[230svh] bg-obsidian"
+      className="relative h-[310svh] bg-obsidian"
     >
       <span id="exterior" className="absolute left-0 top-0" aria-hidden="true" />
       <span
         id="interior"
-        className="absolute left-0 top-[145vh]"
+        className="absolute left-0 top-[190vh]"
         aria-hidden="true"
       />
 
       <ScrollDissolveReveal
         imageFront="/assets/hero/01.png"
         imageBack="/assets/hero/05.png"
-        containerClassName="absolute inset-0 z-[5]"
+        containerClassName="absolute inset-0 z-[5] !h-full"
         className="bg-obsidian"
       />
 

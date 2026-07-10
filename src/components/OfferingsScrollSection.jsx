@@ -10,10 +10,10 @@ import {
   UsersRound,
 } from "lucide-react";
 import {
-  AnimatePresence,
   motion,
   useMotionValueEvent,
   useScroll,
+  useSpring,
   useTransform,
 } from "framer-motion";
 
@@ -138,6 +138,44 @@ function PortalCard({ item, index, scene, portalWidth }) {
   );
 }
 
+function OfferingCopy({ item, index, scene }) {
+  const distance = useTransform(scene, (value) => Math.abs(value - index));
+  const opacity = useTransform(distance, [0, 0.34, 0.58], [1, 0.38, 0]);
+  const y = useTransform(scene, (value) => (index - value) * 30);
+  const visibility = useTransform(distance, (value) =>
+    value < 0.6 ? "visible" : "hidden"
+  );
+
+  return (
+    <motion.div
+      style={{ opacity, y, visibility }}
+      className="absolute inset-0 flex flex-col justify-center will-change-transform"
+      aria-hidden={false}
+    >
+      <h2
+        style={serifStyle}
+        className="text-[clamp(5.25rem,7.25vw,8.8rem)] font-normal leading-[0.8] tracking-[-0.075em] text-[#171510]"
+      >
+        {item.title}
+      </h2>
+      <p className="mt-9 max-w-[580px] text-[clamp(1.25rem,1.55vw,1.75rem)] leading-[1.25] tracking-[-0.045em] text-[#2a261d]/76">
+        {item.copy}
+      </p>
+
+      <div className="mt-11 grid grid-cols-3 gap-4">
+        {item.specs.map((spec) => (
+          <div
+            key={spec}
+            className="border-t border-[#9b6c2b]/32 pt-4 text-[0.58rem] font-bold uppercase leading-relaxed tracking-[0.22em] text-[#2a261d]/58"
+          >
+            {spec}
+          </div>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
 function CompactPortalCard({ item, index }) {
   const Icon = item.icon;
 
@@ -217,8 +255,14 @@ export function OfferingsScrollSection() {
     [0, 1],
     [0, offerings.length - 1]
   );
+  const smoothScene = useSpring(scene, {
+    stiffness: 170,
+    damping: 32,
+    mass: 0.38,
+    restDelta: 0.001,
+  });
   const trackX = useTransform(
-    scene,
+    smoothScene,
     (value) => -value * (portalMetrics.width + portalMetrics.gap)
   );
   const progressScale = useTransform(scrollYProgress, [0, 1], [0, 1]);
@@ -243,10 +287,10 @@ export function OfferingsScrollSection() {
     return () => observer.disconnect();
   }, []);
 
-  useMotionValueEvent(scrollYProgress, "change", (latest) => {
+  useMotionValueEvent(smoothScene, "change", (latest) => {
     const nextIndex = Math.min(
       offerings.length - 1,
-      Math.max(0, Math.round(latest * (offerings.length - 1)))
+      Math.max(0, Math.round(latest))
     );
     setActiveIndex((current) => (current === nextIndex ? current : nextIndex));
   });
@@ -365,44 +409,15 @@ export function OfferingsScrollSection() {
                 </p>
               </div>
 
-              <div className="my-auto max-w-[660px] py-8">
-                <AnimatePresence initial={false} mode="sync">
-                  <motion.div
-                    key={active.title}
-                    initial={{ opacity: 0, y: 24 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -18 }}
-                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                  >
-                    <h2
-                      style={serifStyle}
-                      className="text-[clamp(5.25rem,7.25vw,8.8rem)] font-normal leading-[0.8] tracking-[-0.075em] text-[#171510]"
-                    >
-                      {active.title}
-                    </h2>
-                    <p className="mt-9 max-w-[580px] text-[clamp(1.25rem,1.55vw,1.75rem)] leading-[1.25] tracking-[-0.045em] text-[#2a261d]/76">
-                      {active.copy}
-                    </p>
-
-                    <div className="mt-11 grid grid-cols-3 gap-4">
-                      {active.specs.map((spec, index) => (
-                        <motion.div
-                          key={spec}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{
-                            duration: 0.3,
-                            delay: index * 0.04,
-                            ease: [0.22, 1, 0.36, 1],
-                          }}
-                          className="border-t border-[#9b6c2b]/32 pt-4 text-[0.58rem] font-bold uppercase leading-relaxed tracking-[0.22em] text-[#2a261d]/58"
-                        >
-                          {spec}
-                        </motion.div>
-                      ))}
-                    </div>
-                  </motion.div>
-                </AnimatePresence>
+              <div className="relative my-auto min-h-[470px] max-w-[660px] py-8">
+                {offerings.map((item, index) => (
+                  <OfferingCopy
+                    key={item.title}
+                    item={item}
+                    index={index}
+                    scene={smoothScene}
+                  />
+                ))}
               </div>
 
               <div>
@@ -449,7 +464,7 @@ export function OfferingsScrollSection() {
                     key={item.title}
                     item={item}
                     index={index}
-                    scene={scene}
+                    scene={smoothScene}
                     portalWidth={portalMetrics.width}
                   />
                 ))}
