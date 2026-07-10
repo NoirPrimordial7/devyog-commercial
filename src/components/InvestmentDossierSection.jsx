@@ -113,9 +113,10 @@ export function InvestmentDossierSection() {
         </motion.div>
         <motion.div className="dossier-entry-frontier" style={{ y: frontierY, opacity: frontierOpacity }} aria-hidden="true" />
 
-        <motion.div className="dossier-object" style={{ scale: objectScale, y: objectY }}>
-          <div className="dossier-shadow" aria-hidden="true" />
-          <div className="dossier-book">
+        <div className="dossier-object-anchor">
+          <motion.div className="dossier-object" style={{ scale: objectScale, y: objectY }}>
+            <div className="dossier-shadow" aria-hidden="true" />
+            <div className="dossier-book">
             <div className="dossier-base" aria-hidden="true" />
             {dossierChapters.map((chapter, index) => <DossierSpread key={chapter.id} chapter={chapter} index={index} progress={progress} activeIndex={activeIndex} />)}
             {pageTurns.map((rotateY, index) => <motion.div key={index} className="dossier-turn-page" style={{ rotateY }} aria-hidden="true"><span/></motion.div>)}
@@ -127,9 +128,10 @@ export function InvestmentDossierSection() {
               </div>
             </motion.div>
             <motion.div className="dossier-closing" style={{ opacity: closingOpacity }} aria-hidden="true"><p>Four reasons.<br/>One connected opportunity.</p></motion.div>
-            <DossierProgress activeIndex={activeIndex} />
-          </div>
-        </motion.div>
+              <DossierProgress activeIndex={activeIndex} />
+            </div>
+          </motion.div>
+        </div>
 
         <motion.div className="dossier-exit-copy" style={{ opacity: closingOpacity }}>
           Continue exploring the destination <ArrowDown size={15} aria-hidden="true" />

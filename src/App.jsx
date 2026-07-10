@@ -22,8 +22,8 @@ function Homepage() {
       <LayeredHeroExperience />
       <PostHeroEditorialShell>
         <LandmarkSection />
-        <InvestmentDossierSection />
         <OfferingsScrollSection />
+        <InvestmentDossierSection />
         <InvestorModelsSection />
       </PostHeroEditorialShell>
       <CTASection />
