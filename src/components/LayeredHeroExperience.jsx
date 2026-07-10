@@ -161,13 +161,13 @@ export function LayeredHeroExperience() {
   );
   const interiorTextOpacity = useTransform(
     smoothProgress,
-    [0.67, 0.82, 0.94, 1],
-    [0, 1, 1, 0],
+    [0.67, 0.82],
+    [0, 1],
   );
   const featureRailOpacity = useTransform(
     smoothProgress,
-    [0, 0.44, 0.6, 0.78, 0.94, 1],
-    [1, 0.92, 0, 0.92, 0.92, 0],
+    [0, 0.44, 0.6, 0.78],
+    [1, 0.92, 0, 0.92],
   );
   const scrollLine = useTransform(smoothProgress, [0, 1], [0, 1]);
   const scrollHintOpacity = useTransform(
@@ -180,7 +180,7 @@ export function LayeredHeroExperience() {
     <main
       ref={experience}
       id="experience"
-      className="relative h-[310svh] bg-obsidian"
+      className="relative h-[270svh] bg-obsidian"
     >
       <span id="exterior" className="absolute left-0 top-0" aria-hidden="true" />
       <span

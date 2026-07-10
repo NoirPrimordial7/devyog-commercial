@@ -17,8 +17,12 @@ const heroStats = [
 
 export function LandmarkSection() {
   return (
-    <section
+    <motion.section
       id="project-visualization"
+      initial={{ opacity: 0, y: 18 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.08 }}
+      transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
       className="relative isolate flex min-h-[100svh] overflow-hidden px-5 py-16 text-[#171510] sm:px-8 lg:px-12 lg:py-14"
     >
       <div className="mx-auto grid w-full max-w-[1480px] gap-8 self-center lg:grid-cols-[minmax(0,1.08fr)_minmax(250px,0.4fr)] lg:items-center xl:grid-cols-[minmax(135px,0.35fr)_minmax(0,1.2fr)_minmax(250px,0.45fr)]">
@@ -141,6 +145,6 @@ export function LandmarkSection() {
           </div>
         </motion.div>
       </div>
-    </section>
+    </motion.section>
   );
 }
