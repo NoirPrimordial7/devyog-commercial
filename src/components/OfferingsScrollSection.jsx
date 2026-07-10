@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  ArrowUpRight,
   Building2,
   CarFront,
   HeartPulse,
@@ -48,7 +47,7 @@ const offerings = [
     eyebrow: "03",
     menu: "Food & Beverage",
     title: "Food & Beverage",
-    copy: "Integrated café and restaurant spaces with premium dining experience for tenants and visitors.",
+    copy: "Integrated café and restaurant spaces with a premium dining experience for tenants and visitors.",
     image: "/assets/offerings/food-and-beverage.png",
     position: "18% 58%",
     icon: Utensils,
@@ -86,79 +85,170 @@ const offerings = [
   },
 ];
 
-function OfferingVisual({ active }) {
-  const Icon = active.icon;
+const archRadius = "50% 50% 1.5rem 1.5rem / 22% 22% 1.5rem 1.5rem";
+
+function PortalCard({ item, index, scene, portalWidth }) {
+  const Icon = item.icon;
+  const distance = useTransform(scene, (value) => Math.abs(value - index));
+  const opacity = useTransform(distance, [0, 0.9, 1.7], [1, 0.5, 0.16]);
+  const scale = useTransform(distance, [0, 1, 2], [1, 0.88, 0.8]);
+  const y = useTransform(distance, [0, 1, 2], [0, 22, 42]);
 
   return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key={active.title}
-        initial={{ opacity: 0, y: 36, scale: 0.975 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: -28, scale: 0.985 }}
-        transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-        className="relative h-[min(72svh,690px)] min-h-[520px] overflow-hidden rounded-[1.65rem] border border-[#b98a3f]/32 bg-[#15130f] shadow-[0_38px_120px_rgba(76,56,26,0.22)]"
+    <motion.article
+      aria-label={item.title}
+      style={{ opacity, scale, y, width: portalWidth }}
+      className="relative h-[min(72svh,720px)] shrink-0 will-change-transform"
+    >
+      <div
+        className="absolute inset-0 border border-[#9d7133]/42 bg-[#17140f] p-[9px] shadow-[0_30px_70px_rgba(60,43,20,0.18)]"
+        style={{ borderRadius: archRadius }}
       >
-        <img
-          src={active.image}
-          alt=""
-          className="absolute inset-0 h-full w-full scale-[1.035] object-cover opacity-90"
-          style={{ objectPosition: active.position }}
-        />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_42%_18%,rgba(255,214,138,0.2),transparent_29%),linear-gradient(180deg,rgba(17,15,11,0.02),rgba(17,15,11,0.88))]" />
-        <div className="absolute inset-x-7 top-7 h-px bg-gradient-to-r from-transparent via-[#f4dfb8]/32 to-transparent" />
-
-        <Icon
-          className="absolute right-8 top-9 h-14 w-14 text-[#d6a352]/62"
-          strokeWidth={1}
-        />
-
-        <div className="absolute bottom-7 left-7 right-7">
-          <div className="mb-6 flex items-center justify-between border-b border-[#f5ead7]/18 pb-5">
-            <p className="text-[0.62rem] font-bold uppercase tracking-[0.44em] text-[#d6a352]">
-              {active.menu}
-            </p>
-            <ArrowUpRight className="h-6 w-6 text-[#d6a352]" strokeWidth={1.2} />
-          </div>
-
-          <p className="mb-5 max-w-md text-base leading-relaxed tracking-[-0.025em] text-[#f5ead7]/76">
-            {active.copy}
-          </p>
-
-          <div className="grid gap-3">
-            {active.specs.map((spec) => (
-              <div
-                key={spec}
-                className="flex items-center justify-between gap-5 rounded-full border border-[#f5ead7]/20 bg-[#080706]/42 px-5 py-3 backdrop-blur-md"
-              >
-                <span className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-[#f5ead7]/74">
-                  {spec}
-                </span>
-                <span className="h-1.5 w-1.5 rounded-full bg-[#d6a352]" />
-              </div>
-            ))}
+        <div
+          className="relative h-full overflow-hidden border border-[#f4dfb8]/26 bg-[#17140f]"
+          style={{ borderRadius: archRadius }}
+        >
+          <img
+            src={item.image}
+            alt={`${item.title} at Devyog commercial facility`}
+            width="504"
+            height="504"
+            loading="lazy"
+            decoding="async"
+            className="absolute inset-0 h-full w-full object-cover"
+            style={{ objectPosition: item.position }}
+          />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,9,7,0.03)_42%,rgba(10,9,7,0.82)_100%)]" />
+          <div className="absolute inset-x-5 bottom-5 flex items-end justify-between gap-4 border-t border-[#f4dfb8]/28 pt-4">
+            <div>
+              <p className="text-[0.58rem] font-bold uppercase tracking-[0.4em] text-[#d4a351]">
+                {item.eyebrow} / 06
+              </p>
+              <p className="mt-2 text-sm font-semibold uppercase tracking-[0.16em] text-[#f7eddd]">
+                {item.menu}
+              </p>
+            </div>
+            <Icon className="h-8 w-8 shrink-0 text-[#d4a351]" strokeWidth={1.15} />
           </div>
         </div>
-      </motion.div>
-    </AnimatePresence>
+      </div>
+
+      <div className="absolute -bottom-3 left-[8%] right-[8%] h-4 border-x border-b border-[#9d7133]/34 bg-[#d9cbb4]/72" />
+    </motion.article>
+  );
+}
+
+function CompactPortalCard({ item, index }) {
+  const Icon = item.icon;
+
+  return (
+    <article
+      data-compact-portal
+      className="w-[82vw] max-w-[430px] shrink-0 snap-center"
+      aria-label={`${item.eyebrow} of 06: ${item.title}`}
+    >
+      <div
+        className="relative aspect-[4/5] overflow-hidden border border-[#9d7133]/38 bg-[#17140f] p-[7px] shadow-[0_22px_55px_rgba(61,44,22,0.14)]"
+        style={{ borderRadius: archRadius }}
+      >
+        <div
+          className="relative h-full overflow-hidden border border-[#f4dfb8]/24"
+          style={{ borderRadius: archRadius }}
+        >
+          <img
+            src={item.image}
+            alt={`${item.title} at Devyog commercial facility`}
+            width="504"
+            height="504"
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover"
+            style={{ objectPosition: item.position }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0b0907]/72 via-transparent to-transparent" />
+          <div className="absolute inset-x-5 bottom-5 flex items-center justify-between border-t border-[#f4dfb8]/26 pt-4">
+            <span className="text-[0.58rem] font-bold uppercase tracking-[0.34em] text-[#f0be69]">
+              {item.eyebrow} / 06
+            </span>
+            <Icon className="h-7 w-7 text-[#f0be69]" strokeWidth={1.2} />
+          </div>
+        </div>
+      </div>
+
+      <div className="px-1 pb-2 pt-7">
+        <h3
+          style={serifStyle}
+          className="text-[clamp(2.7rem,11vw,4.25rem)] leading-[0.88] tracking-[-0.065em] text-[#171510]"
+        >
+          {item.title}
+        </h3>
+        <p className="mt-5 max-w-md text-[0.95rem] leading-relaxed tracking-[-0.025em] text-[#2a261d]/72">
+          {item.copy}
+        </p>
+        <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 border-t border-[#9d7133]/24 pt-4">
+          {item.specs.map((spec) => (
+            <span
+              key={spec}
+              className="text-[0.58rem] font-bold uppercase tracking-[0.2em] text-[#2a261d]/58"
+            >
+              {spec}
+            </span>
+          ))}
+        </div>
+      </div>
+    </article>
   );
 }
 
 export function OfferingsScrollSection() {
   const sectionRef = useRef(null);
+  const stageRef = useRef(null);
+  const compactTrackRef = useRef(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [compactIndex, setCompactIndex] = useState(0);
+  const [portalMetrics, setPortalMetrics] = useState({ width: 420, gap: 30 });
+
   const { scrollYProgress } = useScroll({
     target: sectionRef,
     offset: ["start start", "end end"],
   });
+  const scene = useTransform(
+    scrollYProgress,
+    [0, 1],
+    [0, offerings.length - 1]
+  );
+  const trackX = useTransform(
+    scene,
+    (value) => -value * (portalMetrics.width + portalMetrics.gap)
+  );
   const progressScale = useTransform(scrollYProgress, [0, 1], [0, 1]);
+
+  useEffect(() => {
+    if (!stageRef.current) return undefined;
+
+    const updateMetrics = () => {
+      const stageWidth = stageRef.current?.clientWidth ?? 760;
+      const width = Math.round(Math.min(480, Math.max(340, stageWidth * 0.58)));
+      const gap = Math.round(Math.min(34, Math.max(22, stageWidth * 0.04)));
+      setPortalMetrics((current) =>
+        current.width === width && current.gap === gap
+          ? current
+          : { width, gap }
+      );
+    };
+
+    updateMetrics();
+    const observer = new ResizeObserver(updateMetrics);
+    observer.observe(stageRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   useMotionValueEvent(scrollYProgress, "change", (latest) => {
     const nextIndex = Math.min(
       offerings.length - 1,
-      Math.max(0, Math.floor(latest * offerings.length))
+      Math.max(0, Math.round(latest * (offerings.length - 1)))
     );
-    setActiveIndex(nextIndex);
+    setActiveIndex((current) => (current === nextIndex ? current : nextIndex));
   });
 
   const active = offerings[activeIndex];
@@ -168,157 +258,240 @@ export function OfferingsScrollSection() {
     const rect = sectionRef.current.getBoundingClientRect();
     const top = window.scrollY + rect.top;
     const available = sectionRef.current.offsetHeight - window.innerHeight;
-    const target = top + available * (index / Math.max(1, offerings.length - 1));
-    window.scrollTo({ top: target, behavior: "smooth" });
+    window.scrollTo({
+      top: top + available * (index / Math.max(1, offerings.length - 1)),
+      behavior: "smooth",
+    });
+  };
+
+  const scrollCompactTo = (index) => {
+    const track = compactTrackRef.current;
+    const card = track?.querySelectorAll("[data-compact-portal]")?.[index];
+    if (!track || !card) return;
+    track.scrollTo({
+      left: card.offsetLeft - (track.clientWidth - card.clientWidth) / 2,
+      behavior: "smooth",
+    });
+  };
+
+  const updateCompactIndex = () => {
+    const track = compactTrackRef.current;
+    if (!track) return;
+    const cards = Array.from(track.querySelectorAll("[data-compact-portal]"));
+    const center = track.scrollLeft + track.clientWidth / 2;
+    let nearest = 0;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+
+    cards.forEach((card, index) => {
+      const distance = Math.abs(card.offsetLeft + card.clientWidth / 2 - center);
+      if (distance < nearestDistance) {
+        nearest = index;
+        nearestDistance = distance;
+      }
+    });
+
+    setCompactIndex((current) => (current === nearest ? current : nearest));
   };
 
   return (
-    <section id="offerings" className="relative text-[#171510]">
-      <div className="px-5 py-20 sm:px-8 lg:hidden">
-        <p className="mb-6 text-[0.65rem] font-bold uppercase tracking-[0.5em] text-[#9b6c2b]">
-          Facility mix
-        </p>
-        <h2
-          style={serifStyle}
-          className="max-w-3xl text-[clamp(3rem,14vw,5.6rem)] leading-[0.88] tracking-[-0.075em]"
-        >
-          Spaces that make work feel complete.
-        </h2>
-
-        <div className="mt-12 grid gap-5">
-          {offerings.map((item) => {
-            const Icon = item.icon;
-            return (
-              <article
-                key={item.title}
-                className="overflow-hidden rounded-[1.8rem] border border-[#9b6c2b]/22 bg-[#efe5d2]/72"
+    <section id="offerings" ref={sectionRef} className="relative text-[#171510]">
+      <div className="offerings-compact px-5 pb-24 pt-32 sm:px-8 sm:pb-28 sm:pt-32">
+        <div className="mx-auto max-w-6xl">
+          <div className="flex items-end justify-between gap-6">
+            <div>
+              <p className="text-[0.62rem] font-bold uppercase tracking-[0.5em] text-[#9b6c2b]">
+                Facility mix
+              </p>
+              <h2
+                style={serifStyle}
+                className="mt-6 max-w-3xl text-[clamp(3.25rem,12vw,6rem)] leading-[0.86] tracking-[-0.07em]"
               >
-                <div className="relative h-56 overflow-hidden">
-                  <img
-                    src={item.image}
-                    alt=""
-                    className="h-full w-full object-cover"
-                    style={{ objectPosition: item.position }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#171510]/72 to-transparent" />
-                  <Icon className="absolute bottom-5 left-5 h-9 w-9 text-[#f3c36c]" strokeWidth={1.25} />
-                </div>
-                <div className="p-6">
-                  <p className="text-[0.6rem] font-bold uppercase tracking-[0.35em] text-[#9b6c2b]">
-                    {item.eyebrow}
-                  </p>
-                  <h3 className="mt-4 text-2xl font-semibold tracking-[-0.045em]">
-                    {item.title}
-                  </h3>
-                  <p className="mt-3 text-sm leading-relaxed text-[#2a261d]/70">
-                    {item.copy}
-                  </p>
-                </div>
-              </article>
-            );
-          })}
+                Spaces for every ambition.
+              </h2>
+            </div>
+            <p className="hidden pb-2 text-[0.6rem] font-bold uppercase tracking-[0.28em] text-[#2a261d]/48 sm:block">
+              Swipe to explore
+            </p>
+          </div>
+
+          <div
+            ref={compactTrackRef}
+            onScroll={updateCompactIndex}
+            className="offerings-snap-track -mx-5 mt-12 flex snap-x snap-mandatory gap-5 overflow-x-auto px-5 pb-8 sm:-mx-8 sm:px-8"
+            aria-label="Facility offerings"
+          >
+            {offerings.map((item, index) => (
+              <CompactPortalCard key={item.title} item={item} index={index} />
+            ))}
+          </div>
+
+          <nav className="mt-2 flex items-center justify-between border-t border-[#2a261d]/16 pt-5" aria-label="Offering slides">
+            <p className="text-[0.6rem] font-bold uppercase tracking-[0.35em] text-[#9b6c2b]">
+              {String(compactIndex + 1).padStart(2, "0")} / 06
+            </p>
+            <div className="flex gap-2">
+              {offerings.map((item, index) => (
+                <button
+                  key={item.title}
+                  type="button"
+                  onClick={() => scrollCompactTo(index)}
+                  aria-label={`View ${item.title}`}
+                  aria-current={compactIndex === index ? "true" : undefined}
+                  className={`h-1 rounded-full transition-[width,background-color] duration-300 ${
+                    compactIndex === index
+                      ? "w-8 bg-[#9b6c2b]"
+                      : "w-3 bg-[#2a261d]/22"
+                  }`}
+                />
+              ))}
+            </div>
+          </nav>
         </div>
       </div>
 
-      <div ref={sectionRef} className="relative hidden h-[360svh] lg:block">
-        <div className="sticky top-0 h-[100svh] min-h-[720px] overflow-hidden px-8 py-10 xl:px-12">
-          <div className="relative z-10 mx-auto grid h-full max-w-[1500px] grid-cols-[245px_minmax(0,0.95fr)_minmax(420px,0.9fr)] items-center gap-10 xl:grid-cols-[275px_minmax(0,0.95fr)_minmax(500px,0.9fr)] xl:gap-14">
-            <aside className="self-stretch py-20">
-              <div className="flex h-full flex-col justify-between">
-                <div>
-                  <p className="text-[0.62rem] font-bold uppercase tracking-[0.52em] text-[#9b6c2b]">
-                    Facility mix
-                  </p>
-                  <div className="mt-7 h-px w-full bg-[#2a261d]/16" />
-                </div>
+      <div
+        className="offerings-desktop relative"
+        style={{ height: `${100 + (offerings.length - 1) * 88}svh` }}
+      >
+        <div className="sticky top-0 h-[100svh] overflow-hidden px-8 py-8 xl:px-12">
+          <div className="mx-auto grid h-full max-w-[1580px] grid-cols-[minmax(400px,0.82fr)_minmax(620px,1.18fr)] items-center gap-10 xl:gap-16">
+            <div className="relative z-20 flex h-full min-h-0 flex-col justify-between py-[7svh]">
+              <div className="flex items-center justify-between gap-8">
+                <p className="text-[0.62rem] font-bold uppercase tracking-[0.52em] text-[#9b6c2b]">
+                  Facility mix
+                </p>
+                <p className="text-[0.62rem] font-bold uppercase tracking-[0.4em] text-[#9b6c2b]">
+                  {active.eyebrow} / 06
+                </p>
+              </div>
 
-                <nav className="space-y-1">
-                  {offerings.map((item, index) => {
-                    const isActive = index === activeIndex;
-                    return (
-                      <button
-                        key={item.title}
-                        type="button"
-                        onClick={() => jumpToOffering(index)}
-                        className="group flex w-full items-center gap-4 py-4 text-left"
-                      >
-                        <span
-                          className={`h-px transition-all duration-500 ${
-                            isActive
-                              ? "w-12 bg-[#a36f2e]"
-                              : "w-5 bg-[#2a261d]/22 group-hover:w-9 group-hover:bg-[#a36f2e]/70"
-                          }`}
-                        />
-                        <span
-                          className={`text-[0.68rem] font-bold uppercase tracking-[0.26em] transition-colors duration-500 ${
-                            isActive ? "text-[#171510]" : "text-[#2a261d]/42"
-                          }`}
+              <div className="my-auto max-w-[660px] py-8">
+                <AnimatePresence initial={false} mode="sync">
+                  <motion.div
+                    key={active.title}
+                    initial={{ opacity: 0, y: 24 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -18 }}
+                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    <h2
+                      style={serifStyle}
+                      className="text-[clamp(5.25rem,7.25vw,8.8rem)] font-normal leading-[0.8] tracking-[-0.075em] text-[#171510]"
+                    >
+                      {active.title}
+                    </h2>
+                    <p className="mt-9 max-w-[580px] text-[clamp(1.25rem,1.55vw,1.75rem)] leading-[1.25] tracking-[-0.045em] text-[#2a261d]/76">
+                      {active.copy}
+                    </p>
+
+                    <div className="mt-11 grid grid-cols-3 gap-4">
+                      {active.specs.map((spec, index) => (
+                        <motion.div
+                          key={spec}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{
+                            duration: 0.3,
+                            delay: index * 0.04,
+                            ease: [0.22, 1, 0.36, 1],
+                          }}
+                          className="border-t border-[#9b6c2b]/32 pt-4 text-[0.58rem] font-bold uppercase leading-relaxed tracking-[0.22em] text-[#2a261d]/58"
                         >
-                          {item.menu}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </nav>
+                          {spec}
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
 
-                <div>
-                  <div className="h-px w-full bg-[#2a261d]/16" />
-                  <p className="mt-6 text-[0.66rem] font-semibold uppercase tracking-[0.32em] text-[#2a261d]/48">
-                    Scroll to explore
-                  </p>
+              <div>
+                <nav className="flex items-center gap-3" aria-label="Facility offerings">
+                  {offerings.map((item, index) => (
+                    <button
+                      key={item.title}
+                      type="button"
+                      onClick={() => jumpToOffering(index)}
+                      aria-label={`View ${item.title}`}
+                      aria-current={activeIndex === index ? "true" : undefined}
+                      className={`group h-8 flex-1 border-t pt-3 text-left text-[0.54rem] font-bold uppercase tracking-[0.2em] transition-colors duration-300 ${
+                        activeIndex === index
+                          ? "border-[#9b6c2b] text-[#171510]"
+                          : "border-[#2a261d]/18 text-[#2a261d]/34 hover:border-[#9b6c2b]/56 hover:text-[#2a261d]/64"
+                      }`}
+                    >
+                      {String(index + 1).padStart(2, "0")}
+                    </button>
+                  ))}
+                </nav>
+                <div className="mt-5 h-px w-full bg-[#2a261d]/12">
+                  <motion.div
+                    style={{ scaleX: progressScale, transformOrigin: "0% 50%" }}
+                    className="h-px w-full bg-[#9b6c2b]"
+                  />
                 </div>
               </div>
-            </aside>
+            </div>
 
-            <main className="min-w-0">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={active.title}
-                  initial={{ opacity: 0, y: 38 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -28 }}
-                  transition={{ duration: 0.58, ease: [0.22, 1, 0.36, 1] }}
-                >
-                  <p className="mb-7 text-[0.68rem] font-bold uppercase tracking-[0.58em] text-[#9b6c2b]">
-                    {active.eyebrow} / 06
-                  </p>
-                  <h2
-                    style={serifStyle}
-                    className="max-w-[870px] text-[clamp(5rem,8vw,9.8rem)] font-normal leading-[0.82] tracking-[-0.08em] text-[#171510]"
-                  >
-                    {active.title}
-                  </h2>
-                  <p className="mt-10 max-w-2xl text-3xl leading-[1.22] tracking-[-0.055em] text-[#2a261d]/72">
-                    {active.copy}
-                  </p>
-                </motion.div>
-              </AnimatePresence>
-
-              <div className="mt-16 grid max-w-3xl grid-cols-3 gap-3">
-                {active.specs.map((spec) => (
-                  <div
-                    key={spec}
-                    className="border-t border-[#9b6c2b]/32 pt-4 text-[0.64rem] font-bold uppercase leading-relaxed tracking-[0.26em] text-[#2a261d]/54"
-                  >
-                    {spec}
-                  </div>
-                ))}
-              </div>
-            </main>
-
-            <OfferingVisual active={active} />
-          </div>
-
-          <div className="absolute bottom-8 left-8 right-8 z-20 mx-auto max-w-[1500px]">
-            <div className="h-px w-full bg-[#2a261d]/12">
+            <div ref={stageRef} className="relative h-full min-w-0 overflow-hidden">
               <motion.div
-                style={{ scaleX: progressScale, transformOrigin: "0% 50%" }}
-                className="h-px w-full bg-[#a36f2e]"
-              />
+                style={{
+                  x: trackX,
+                  y: "-50%",
+                  width: portalMetrics.width,
+                  gap: portalMetrics.gap,
+                  marginLeft: -portalMetrics.width / 2,
+                }}
+                className="absolute left-1/2 top-1/2 flex items-center will-change-transform"
+              >
+                {offerings.map((item, index) => (
+                  <PortalCard
+                    key={item.title}
+                    item={item}
+                    index={index}
+                    scene={scene}
+                    portalWidth={portalMetrics.width}
+                  />
+                ))}
+              </motion.div>
+
+              <div className="pointer-events-none absolute inset-y-0 left-0 w-[12%] bg-gradient-to-r from-[#e7decf] to-transparent" />
+              <div className="pointer-events-none absolute inset-y-0 right-0 w-[12%] bg-gradient-to-l from-[#e7decf] to-transparent" />
             </div>
           </div>
         </div>
       </div>
+
+      <style>{`
+        .offerings-desktop {
+          display: none;
+        }
+
+        .offerings-compact {
+          display: block;
+        }
+
+        .offerings-snap-track {
+          scrollbar-width: none;
+          overscroll-behavior-inline: contain;
+          scroll-padding-inline: 1.25rem;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        .offerings-snap-track::-webkit-scrollbar {
+          display: none;
+        }
+
+        @media (min-width: 1180px) and (min-height: 700px) {
+          .offerings-desktop {
+            display: block;
+          }
+
+          .offerings-compact {
+            display: none;
+          }
+        }
+      `}</style>
     </section>
   );
 }

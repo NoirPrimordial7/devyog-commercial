@@ -1,411 +1,288 @@
 "use client";
-import React, { useEffect, useRef, useMemo } from "react";
+
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useTexture, OrthographicCamera } from "@react-three/drei";
+import { useTexture } from "@react-three/drei";
+import { useScroll } from "framer-motion";
 import * as THREE from "three";
-import { useScroll, useTransform } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 const coverVertexShader = `
   varying vec2 vUv;
+
   void main() {
     vUv = uv;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    gl_Position = vec4(position.xy, 0.0, 1.0);
   }
 `;
 
-const coverFragmentShader = `
-  uniform sampler2D uTexture;
+const dissolveFragmentShader = `
+  uniform sampler2D uTextureFront;
+  uniform sampler2D uTextureBack;
   uniform vec2 uResolution;
-  uniform vec2 uImageResolution;
-  uniform float uDissolve;
-  uniform vec2 uCenter;
-  uniform float uTime;
-  uniform float uGrayscale;
-  uniform float uEdgeIntensity;
-  uniform float uEdgeBrightness;
+  uniform vec2 uFrontResolution;
+  uniform vec2 uBackResolution;
+  uniform float uProgress;
   varying vec2 vUv;
 
-  mat3 sobelX = mat3(
-    -1.0, 0.0, 1.0,
-    -2.0, 0.0, 2.0,
-    -1.0, 0.0, 1.0
-  );
-
-  mat3 sobelY = mat3(
-    -1.0, -2.0, -1.0,
-     0.0,  0.0,  0.0,
-     1.0,  2.0,  1.0
-  );
-
-  float getLuminance(vec3 color) {
+  float imageLuma(vec3 color) {
     return dot(color, vec3(0.299, 0.587, 0.114));
   }
 
-  float premiumEdge(sampler2D tex, vec2 uv, vec2 texelSize) {
-    float left = getLuminance(texture2D(tex, uv - vec2(texelSize.x, 0.0)).rgb);
-    float right = getLuminance(texture2D(tex, uv + vec2(texelSize.x, 0.0)).rgb);
-    float down = getLuminance(texture2D(tex, uv - vec2(0.0, texelSize.y)).rgb);
-    float up = getLuminance(texture2D(tex, uv + vec2(0.0, texelSize.y)).rgb);
-    float diagonalA = getLuminance(texture2D(tex, uv + texelSize).rgb);
-    float diagonalB = getLuminance(texture2D(tex, uv - texelSize).rgb);
-
-    float edge = length(vec2(right - left, up - down)) + abs(diagonalA - diagonalB) * 0.65;
-    edge = pow(clamp(edge * 4.5, 0.0, 1.0), 0.58);
-    return edge;
+  float hash21(vec2 p) {
+    p = fract(p * vec2(123.34, 456.21));
+    p += dot(p, p + 45.32);
+    return fract(p.x * p.y);
   }
 
-  float sobel(sampler2D tex, vec2 uv, vec2 texelSize) {
-    float gx = 0.0;
-    float gy = 0.0;
+  float valueNoise(vec2 p) {
+    vec2 cell = floor(p);
+    vec2 local = fract(p);
+    local = local * local * (3.0 - 2.0 * local);
 
-    for (int i = -1; i <= 1; i++) {
-      for (int j = -1; j <= 1; j++) {
-        vec2 offset = vec2(float(i), float(j)) * texelSize;
-        float lum = getLuminance(texture2D(tex, uv + offset).rgb);
-        gx += lum * sobelX[i + 1][j + 1];
-        gy += lum * sobelY[i + 1][j + 1];
-      }
-    }
+    float a = hash21(cell);
+    float b = hash21(cell + vec2(1.0, 0.0));
+    float c = hash21(cell + vec2(0.0, 1.0));
+    float d = hash21(cell + vec2(1.0, 1.0));
 
-    return sqrt(gx * gx + gy * gy);
+    return mix(mix(a, b, local.x), mix(c, d, local.x), local.y);
   }
 
-  float hash(vec2 p) {
-    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+  vec2 coverUv(vec2 imageResolution) {
+    float viewportAspect = uResolution.x / uResolution.y;
+    float imageAspect = imageResolution.x / imageResolution.y;
+    vec2 ratio = vec2(
+      min(viewportAspect / imageAspect, 1.0),
+      min(imageAspect / viewportAspect, 1.0)
+    );
+
+    return vUv * ratio + (1.0 - ratio) * 0.5;
   }
 
-  float noise(vec2 p) {
-    vec2 i = floor(p);
-    vec2 f = fract(p);
-    f = f * f * (3.0 - 2.0 * f);
-    
-    float a = hash(i);
-    float b = hash(i + vec2(1.0, 0.0));
-    float c = hash(i + vec2(0.0, 1.0));
-    float d = hash(i + vec2(1.0, 1.0));
-    
-    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
-  }
+  float imageEdge(sampler2D textureImage, vec2 uv, vec2 imageResolution) {
+    vec2 texel = 1.0 / max(imageResolution, vec2(1.0));
+    float left = imageLuma(texture2D(textureImage, uv - vec2(texel.x, 0.0)).rgb);
+    float right = imageLuma(texture2D(textureImage, uv + vec2(texel.x, 0.0)).rgb);
+    float down = imageLuma(texture2D(textureImage, uv - vec2(0.0, texel.y)).rgb);
+    float up = imageLuma(texture2D(textureImage, uv + vec2(0.0, texel.y)).rgb);
+    float edge = length(vec2(right - left, up - down));
 
-  float fbm(vec2 p) {
-    float value = 0.0;
-    float amplitude = 0.5;
-    float frequency = 1.0;
-    
-    for (int i = 0; i < 5; i++) {
-      value += amplitude * noise(p * frequency);
-      amplitude *= 0.5;
-      frequency *= 2.0;
-    }
-    
-    return value;
+    return pow(clamp(edge * 4.6, 0.0, 1.0), 0.62);
   }
 
   void main() {
-    vec2 ratio = vec2(
-      min((uResolution.x / uResolution.y) / (uImageResolution.x / uImageResolution.y), 1.0),
-      min((uResolution.y / uResolution.x) / (uImageResolution.y / uImageResolution.x), 1.0)
-    );
+    vec2 frontUv = coverUv(uFrontResolution);
+    vec2 backUv = coverUv(uBackResolution);
+    vec4 front = texture2D(uTextureFront, frontUv);
+    vec4 back = texture2D(uTextureBack, backUv);
 
-    vec2 uv = vec2(
-      vUv.x * ratio.x + (1.0 - ratio.x) * 0.5,
-      vUv.y * ratio.y + (1.0 - ratio.y) * 0.5
-    );
-
-    vec4 texColor = texture2D(uTexture, uv);
-    
-    float gray = getLuminance(texColor.rgb);
-    vec3 grayscaleColor = vec3(gray);
-    texColor.rgb = mix(texColor.rgb, grayscaleColor, uGrayscale);
-    
-    vec2 centeredUv = vUv - uCenter;
+    vec2 centeredUv = vUv - vec2(0.5);
     float aspect = uResolution.x / uResolution.y;
     centeredUv.x *= aspect;
-    float dist = length(centeredUv);
-    
-    float angle = atan(centeredUv.y, centeredUv.x);
-    
-    float noiseScale = 6.0;
-    vec2 pixelatedUv = floor(vUv * uResolution / noiseScale) * noiseScale / uResolution;
-    float blockNoise = fbm(pixelatedUv * 100.0) * 0.15;
-    
-    float angularNoise = fbm(vec2(angle * 5.0, 0.0)) * 0.15;
-    
-    float totalNoise = blockNoise + angularNoise;
-    float noisyDist = dist + totalNoise;
-    
-    float maxDist = length(vec2(aspect * 0.5, 0.5));
-    float normalizedDist = noisyDist / maxDist;
-    
-    float dissolveThreshold = uDissolve * 1.5; 
-    
-    vec2 texelSize = 1.0 / max(uImageResolution, vec2(1.0));
-    float edge = premiumEdge(uTexture, uv, texelSize);
-    
-    float dissolveMask = smoothstep(dissolveThreshold - 0.03, dissolveThreshold, normalizedDist);
-    
-    vec3 edgeColor = vec3(1.0, 0.72, 0.34);
-    
-    vec3 baseColor = mix(texColor.rgb, vec3(0.0), uGrayscale);
-    vec3 finalColor = baseColor;
-    
-    float edgeGlowIntensity = uEdgeIntensity * 2.0;
-    float edgeGlow = edge * edgeGlowIntensity * (1.0 + uGrayscale * 3.0);
-    finalColor += edgeColor * edgeGlow * uEdgeBrightness;
-    
-    float edgeZoneWidth = 0.15 * (1.0 - uDissolve) + 0.02;
-    float edgeZone = smoothstep(dissolveThreshold - edgeZoneWidth, dissolveThreshold - edgeZoneWidth + 0.04, normalizedDist) * 
-                     smoothstep(dissolveThreshold + 0.02, dissolveThreshold - 0.02, normalizedDist);
-    float sparkle = hash(floor(vUv * uResolution / 4.0)) * edgeZone;
-    
-    float edgeBrightness = (1.0 - uDissolve) * uEdgeBrightness * (1.0 + uGrayscale * 2.0);
-    float goldDust = pow(sparkle, 0.58) * 2.15;
-    float ringGlow = edgeZone * 0.45;
-    finalColor += edgeColor * (goldDust + ringGlow) * edgeBrightness;
-    
-    float alpha = dissolveMask * texColor.a;
+    float distanceFromCenter = length(centeredUv);
 
-    gl_FragColor = vec4(finalColor, alpha);
+    float pixelSize = mix(8.0, 4.5, uProgress);
+    vec2 pixelCell = floor(vUv * uResolution / pixelSize);
+    vec2 pixelatedUv = pixelCell * pixelSize / uResolution;
+    float coarseNoise = valueNoise(pixelatedUv * 34.0);
+    float blockNoise = hash21(pixelCell);
+    float noisyDistance = distanceFromCenter + coarseNoise * 0.13 + blockNoise * 0.035;
+    float maxDistance = length(vec2(aspect * 0.5, 0.5));
+    float normalizedDistance = noisyDistance / maxDistance;
+    float threshold = uProgress * 1.5;
+    float frontMask = smoothstep(threshold - 0.032, threshold, normalizedDistance);
+
+    float frontGray = min(0.82, uProgress / 0.52);
+    float backReveal = min(1.0, uProgress * 1.1);
+    float backGray = 1.0 - backReveal;
+    vec3 frontColor = mix(front.rgb, vec3(imageLuma(front.rgb)), frontGray);
+    frontColor = mix(frontColor, vec3(0.0), frontGray);
+    vec3 backColor = mix(back.rgb, vec3(imageLuma(back.rgb)), backGray);
+    backColor = mix(backColor, vec3(0.0), backGray);
+
+    float frontEdge = imageEdge(uTextureFront, frontUv, uFrontResolution);
+    float backEdge = imageEdge(uTextureBack, backUv, uBackResolution);
+    vec3 gold = vec3(1.0, 0.72, 0.34);
+    float frontEdgeStrength = uProgress * 0.84 * (1.0 + frontGray * 3.0);
+    float frontEdgeBrightness = 1.08 - uProgress * 0.38;
+    frontColor += gold * frontEdge * frontEdgeStrength * frontEdgeBrightness;
+    backColor += gold * backEdge * 1.08 * (1.0 - backReveal);
+
+    float bandWidth = mix(0.15, 0.025, uProgress);
+    float burnBand = 1.0 - smoothstep(
+      bandWidth * 0.28,
+      bandWidth,
+      abs(normalizedDistance - threshold)
+    );
+    float burnActivation = smoothstep(0.015, 0.08, uProgress) *
+      (1.0 - smoothstep(0.94, 1.0, uProgress));
+    float goldDust = pow(blockNoise, 0.58) * 2.0;
+    float burnBrightness = (1.0 - uProgress) * (1.0 + frontGray * 2.0);
+
+    vec3 finalColor = mix(backColor, frontColor, frontMask * front.a);
+    finalColor += gold * burnBand * (0.48 + goldDust) * burnBrightness * burnActivation;
+
+    gl_FragColor = vec4(clamp(finalColor, 0.0, 1.0), 1.0);
   }
 `;
 
-const coverFragmentShaderReverse = `
-  uniform sampler2D uTexture;
-  uniform vec2 uResolution;
-  uniform vec2 uImageResolution;
-  uniform float uDissolve;
-  uniform vec2 uCenter;
-  uniform float uTime;
-  uniform float uBrightness;
-  uniform float uEdgeIntensity;
-  uniform float uDarkness;
-  uniform float uGrayscale;
-  varying vec2 vUv;
-
-  mat3 sobelX = mat3(
-    -1.0, 0.0, 1.0,
-    -2.0, 0.0, 2.0,
-    -1.0, 0.0, 1.0
-  );
-
-  mat3 sobelY = mat3(
-    -1.0, -2.0, -1.0,
-     0.0,  0.0,  0.0,
-     1.0,  2.0,  1.0
-  );
-
-  float getLuminance(vec3 color) {
-    return dot(color, vec3(0.299, 0.587, 0.114));
-  }
-
-  float premiumEdge(sampler2D tex, vec2 uv, vec2 texelSize) {
-    float left = getLuminance(texture2D(tex, uv - vec2(texelSize.x, 0.0)).rgb);
-    float right = getLuminance(texture2D(tex, uv + vec2(texelSize.x, 0.0)).rgb);
-    float down = getLuminance(texture2D(tex, uv - vec2(0.0, texelSize.y)).rgb);
-    float up = getLuminance(texture2D(tex, uv + vec2(0.0, texelSize.y)).rgb);
-    float diagonalA = getLuminance(texture2D(tex, uv + texelSize).rgb);
-    float diagonalB = getLuminance(texture2D(tex, uv - texelSize).rgb);
-
-    float edge = length(vec2(right - left, up - down)) + abs(diagonalA - diagonalB) * 0.65;
-    edge = pow(clamp(edge * 4.5, 0.0, 1.0), 0.58);
-    return edge;
-  }
-
-  float sobel(sampler2D tex, vec2 uv, vec2 texelSize) {
-    float gx = 0.0;
-    float gy = 0.0;
-
-    for (int i = -1; i <= 1; i++) {
-      for (int j = -1; j <= 1; j++) {
-        vec2 offset = vec2(float(i), float(j)) * texelSize;
-        float lum = getLuminance(texture2D(tex, uv + offset).rgb);
-        gx += lum * sobelX[i + 1][j + 1];
-        gy += lum * sobelY[i + 1][j + 1];
-      }
-    }
-
-    return sqrt(gx * gx + gy * gy);
-  }
-
-  void main() {
-    vec2 ratio = vec2(
-      min((uResolution.x / uResolution.y) / (uImageResolution.x / uImageResolution.y), 1.0),
-      min((uResolution.y / uResolution.x) / (uImageResolution.y / uImageResolution.x), 1.0)
-    );
-
-    vec2 uv = vec2(
-      vUv.x * ratio.x + (1.0 - ratio.x) * 0.5,
-      vUv.y * ratio.y + (1.0 - ratio.y) * 0.5
-    );
-
-    vec4 texColor = texture2D(uTexture, uv);
-    
-    float gray = getLuminance(texColor.rgb);
-    vec3 grayscaleColor = vec3(gray);
-    texColor.rgb = mix(texColor.rgb, grayscaleColor, uGrayscale);
-    
-    vec2 texelSize = 1.0 / max(uImageResolution, vec2(1.0));
-    float edge = premiumEdge(uTexture, uv, texelSize);
-    
-    vec3 edgeColor = vec3(1.0, 0.72, 0.34);
-    
-    vec3 darkBase = vec3(0.0);
-    vec3 baseColor = mix(texColor.rgb, darkBase, uDarkness);
-    
-    float edgeGlow = edge * uEdgeIntensity * 2.0;
-    baseColor += edgeColor * edgeGlow;
-    
-    vec3 finalColor = clamp(baseColor, 0.0, 1.0);
-
-    gl_FragColor = vec4(finalColor, texColor.a);
-  }
-`;
-
-const Scene = ({
-  imageFront,
-  imageBack,
-  scrollYProgress
-}) => {
-  const [texture1, texture2] = useTexture([imageFront, imageBack]);
-  const material1Ref = useRef(null);
-  const material2Ref = useRef(null);
+function Scene({ imageFront, imageBack, scrollProgress }) {
+  const [frontTexture, backTexture] = useTexture([imageFront, imageBack]);
+  const materialRef = useRef(null);
   const { size, invalidate } = useThree();
 
-  const uniforms1 = useMemo(() => ({
-    uTexture: { value: texture1 },
-    uResolution: { value: new THREE.Vector2(size.width, size.height) },
-    uImageResolution: {
-      value: new THREE.Vector2(texture1.image.width, texture1.image.height),
-    },
-    uDissolve: { value: 0.0 },
-    uCenter: { value: new THREE.Vector2(0.5, 0.5) },
-    uTime: { value: 0.0 },
-    uGrayscale: { value: 0.0 },
-    uEdgeIntensity: { value: 0.0 },
-    uEdgeBrightness: { value: 1.0 },
-  }), [texture1, size]);
+  useEffect(() => {
+    [frontTexture, backTexture].forEach((texture) => {
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.minFilter = THREE.LinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      texture.generateMipmaps = false;
+      texture.needsUpdate = true;
+    });
+    invalidate();
+  }, [frontTexture, backTexture, invalidate]);
 
-  const uniforms2 = useMemo(() => ({
-    uTexture: { value: texture2 },
-    uResolution: { value: new THREE.Vector2(size.width, size.height) },
-    uImageResolution: {
-      value: new THREE.Vector2(texture2.image.width, texture2.image.height),
-    },
-    uDissolve: { value: 0.0 },
-    uCenter: { value: new THREE.Vector2(0.5, 0.5) },
-    uTime: { value: 0.0 },
-    uBrightness: { value: 0.0 },
-    uEdgeIntensity: { value: 0.6 },
-    uDarkness: { value: 1.0 },
-    uGrayscale: { value: 1.0 },
-  }), [texture2, size]);
+  const uniforms = useMemo(
+    () => ({
+      uTextureFront: { value: frontTexture },
+      uTextureBack: { value: backTexture },
+      uResolution: { value: new THREE.Vector2(size.width, size.height) },
+      uFrontResolution: {
+        value: new THREE.Vector2(frontTexture.image.width, frontTexture.image.height),
+      },
+      uBackResolution: {
+        value: new THREE.Vector2(backTexture.image.width, backTexture.image.height),
+      },
+      uProgress: { value: 0 },
+    }),
+    [frontTexture, backTexture, size],
+  );
 
   useEffect(() => {
-    const unsubscribe = scrollYProgress.on("change", () => invalidate());
+    const unsubscribe = scrollProgress.on("change", () => invalidate());
     invalidate();
-
     return unsubscribe;
-  }, [scrollYProgress, invalidate]);
+  }, [scrollProgress, invalidate]);
 
-  useFrame((state) => {
-    const timeInSeconds = state.clock.getElapsedTime();
-    const progress = scrollYProgress.get();
-
-    if (material1Ref.current) {
-      material1Ref.current.uniforms.uTime.value = timeInSeconds;
-      material1Ref.current.uniforms.uResolution.value.set(size.width, size.height);
-
-      material1Ref.current.uniforms.uDissolve.value = progress;
-      const grayscaleProgress = Math.min(0.82, progress / 0.52);
-      material1Ref.current.uniforms.uGrayscale.value = grayscaleProgress;
-      material1Ref.current.uniforms.uEdgeIntensity.value = progress * 0.42;
-      material1Ref.current.uniforms.uEdgeBrightness.value = 1.08 - progress * 0.38;
-    }
-
-    if (material2Ref.current) {
-      material2Ref.current.uniforms.uTime.value = timeInSeconds;
-      material2Ref.current.uniforms.uResolution.value.set(size.width, size.height);
-
-      const acceleratedProgress = Math.min(1.0, progress * 1.1);
-      material2Ref.current.uniforms.uEdgeIntensity.value =
-        0.54 * (1.0 - acceleratedProgress);
-      material2Ref.current.uniforms.uDarkness.value =
-        1.0 - acceleratedProgress;
-      material2Ref.current.uniforms.uGrayscale.value =
-        1.0 - acceleratedProgress;
-    }
+  useFrame(() => {
+    if (!materialRef.current) return;
+    materialRef.current.uniforms.uProgress.value = THREE.MathUtils.clamp(
+      (scrollProgress.get() - 0.04) / 0.86,
+      0,
+      1,
+    );
   });
 
   return (
-    <>
-      <mesh position={[0, 0, -0.1]}>
-        <planeGeometry args={[2, 2]} />
-        <shaderMaterial
-          ref={material2Ref}
-          vertexShader={coverVertexShader}
-          fragmentShader={coverFragmentShaderReverse}
-          uniforms={uniforms2}
-          transparent={true} />
-      </mesh>
-      <mesh position={[0, 0, 0]}>
-        <planeGeometry args={[2, 2]} />
-        <shaderMaterial
-          ref={material1Ref}
-          vertexShader={coverVertexShader}
-          fragmentShader={coverFragmentShader}
-          uniforms={uniforms1}
-          transparent={true} />
-      </mesh>
-    </>
+    <mesh>
+      <planeGeometry args={[2, 2]} />
+      <shaderMaterial
+        ref={materialRef}
+        vertexShader={coverVertexShader}
+        fragmentShader={dissolveFragmentShader}
+        uniforms={uniforms}
+        depthTest={false}
+        depthWrite={false}
+        transparent={false}
+      />
+    </mesh>
   );
-};
+}
+
+function DissolveViewport({ imageFront, imageBack, scrollProgress, className }) {
+  return (
+    <div
+      className={cn(
+        "sticky top-0 h-[100svh] w-full overflow-hidden",
+        className,
+      )}
+    >
+      <Canvas
+        className="pointer-events-none"
+        frameloop="demand"
+        dpr={1}
+        gl={{ antialias: false, alpha: false, powerPreference: "high-performance" }}
+      >
+        <React.Suspense fallback={null}>
+          <Scene
+            imageFront={imageFront}
+            imageBack={imageBack}
+            scrollProgress={scrollProgress}
+          />
+        </React.Suspense>
+      </Canvas>
+    </div>
+  );
+}
+
+function ScrollTrackedViewport({
+  containerRef,
+  scrollContainerRef,
+  imageFront,
+  imageBack,
+  className,
+}) {
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end end"],
+    ...(scrollContainerRef && { container: scrollContainerRef }),
+  });
+
+  return (
+    <DissolveViewport
+      imageFront={imageFront}
+      imageBack={imageBack}
+      scrollProgress={scrollYProgress}
+      className={className}
+    />
+  );
+}
 
 export function ScrollDissolveReveal({
   imageFront,
   imageBack,
   className,
   containerClassName,
-  scrollContainerRef
+  scrollContainerRef,
+  scrollProgress,
 }) {
   const containerRef = useRef(null);
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end end"],
-    ...(scrollContainerRef && { container: scrollContainerRef })
-  });
-  const dissolveProgress = useTransform(scrollYProgress, [0.04, 0.9], [0, 1]);
+  const [isNearViewport, setIsNearViewport] = useState(true);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return undefined;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsNearViewport(entry.isIntersecting),
+      { rootMargin: "25% 0px" },
+    );
+
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <div
       ref={containerRef}
-      className={cn("h-[230svh] w-full", containerClassName)}>
-      <div
-        className={cn("sticky top-0 h-[100svh] min-h-[640px] w-full origin-center overflow-hidden will-change-transform sm:min-h-[680px]", className)}
-      >
-        <Canvas
-          frameloop="demand"
-          dpr={[1, 1.25]}
-          gl={{ antialias: false, powerPreference: "high-performance" }}
-        >
-          <OrthographicCamera
-            makeDefault
-            manual
-            left={-1}
-            right={1}
-            top={1}
-            bottom={-1}
-            near={0.1}
-            far={10}
-            position={[0, 0, 1]} />
-          <React.Suspense fallback={null}>
-            <Scene
-              imageFront={imageFront}
-              imageBack={imageBack}
-              scrollYProgress={dissolveProgress} />
-          </React.Suspense>
-        </Canvas>
-      </div>
+      className={cn("h-[230svh] w-full", containerClassName)}
+    >
+      {isNearViewport && (scrollProgress ? (
+        <DissolveViewport
+          imageFront={imageFront}
+          imageBack={imageBack}
+          scrollProgress={scrollProgress}
+          className={className}
+        />
+      ) : (
+        <ScrollTrackedViewport
+          containerRef={containerRef}
+          scrollContainerRef={scrollContainerRef}
+          imageFront={imageFront}
+          imageBack={imageBack}
+          className={className}
+        />
+      ))}
     </div>
   );
 }

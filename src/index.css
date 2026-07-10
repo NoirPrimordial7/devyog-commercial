@@ -16,7 +16,6 @@
 
 html {
   scroll-behavior: smooth;
-  scroll-snap-type: y proximity;
   background: #080a0b;
 }
 
@@ -25,16 +24,13 @@ body {
   min-width: 320px;
   overflow-x: hidden;
   background: #080a0b;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-#experience,
-#project-visualization,
-#offerings,
-#investor-options,
-#contact,
-footer {
-  scroll-snap-align: start;
-  scroll-snap-stop: normal;
+img,
+canvas {
+  display: block;
 }
 
 ::selection {

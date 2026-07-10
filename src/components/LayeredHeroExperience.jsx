@@ -1,13 +1,11 @@
 import {
   motion,
-  useScroll,
-  useSpring,
+  useMotionValue,
   useTransform,
 } from "framer-motion";
 import { ArrowRight, Building2, Gem, Leaf, MapPin } from "lucide-react";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { ScrollDissolveReveal } from "@/components/ui/scroll-dissolve-reveal";
-import { Navbar } from "./Navbar";
 
 function LuxuryHeadline({ variant }) {
   const isExterior = variant === "exterior";
@@ -89,10 +87,10 @@ function FeatureRail({ opacity }) {
       animate={{ x: 0 }}
       transition={{ delay: 0.55, duration: 1.05, ease: [0.2, 0.8, 0.2, 1] }}
       style={{ opacity }}
-      className="pointer-events-none absolute bottom-[4.6rem] left-4 z-[55] w-[calc(100%-2rem)] max-w-[390px] sm:bottom-8 sm:left-7 sm:w-[320px] md:left-9 lg:bottom-auto lg:left-[clamp(2rem,3.5vw,4.75rem)] lg:top-[29%] lg:w-[245px] xl:w-[270px]"
+      className="pointer-events-none absolute bottom-[max(1rem,env(safe-area-inset-bottom))] left-3 z-[55] w-[calc(100%-1.5rem)] max-w-[390px] sm:bottom-6 sm:left-6 sm:w-[310px] md:left-8 lg:bottom-[clamp(2.25rem,5vh,4.5rem)] lg:left-[clamp(2rem,3.5vw,4.75rem)] lg:top-auto lg:w-[245px] xl:w-[270px]"
       aria-label="Facility highlights"
     >
-      <div className="grid grid-cols-2 overflow-hidden border-y border-white/18 bg-[#03070a]/28 backdrop-blur-[2px] sm:block lg:border-y-0 lg:bg-transparent lg:backdrop-blur-none">
+      <div className="grid grid-cols-2 overflow-hidden border-y border-white/16 sm:block lg:border-y-0">
         {featureHighlights.map(({ icon: Icon, label }, index) => (
           <div
             key={index}
@@ -131,51 +129,72 @@ function FeatureRail({ opacity }) {
   );
 }
 
+function useStoryProgress(targetRef) {
+  const progress = useMotionValue(0);
+
+  useEffect(() => {
+    let frame = 0;
+
+    const update = () => {
+      frame = 0;
+      const target = targetRef.current;
+      if (!target) return;
+
+      const rect = target.getBoundingClientRect();
+      const start = rect.top + window.scrollY;
+      const travel = Math.max(1, target.offsetHeight - window.innerHeight);
+      const next = (window.scrollY - start) / travel;
+      progress.set(Math.min(1, Math.max(0, next)));
+    };
+
+    const requestUpdate = () => {
+      if (!frame) frame = window.requestAnimationFrame(update);
+    };
+
+    update();
+    window.addEventListener("scroll", requestUpdate, { passive: true });
+    window.addEventListener("resize", requestUpdate, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", requestUpdate);
+      window.removeEventListener("resize", requestUpdate);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, [progress, targetRef]);
+
+  return progress;
+}
+
 export function LayeredHeroExperience() {
   const experience = useRef(null);
-  const { scrollYProgress } = useScroll({
-    target: experience,
-    offset: ["start start", "end end"],
-  });
-
-  const smoothProgress = useSpring(scrollYProgress, {
-    stiffness: 112,
-    damping: 27,
-    restDelta: 0.001,
-  });
+  const scrollYProgress = useStoryProgress(experience);
 
   const exteriorOpacity = useTransform(
-    smoothProgress,
+    scrollYProgress,
     [0, 0.22, 0.4],
     [1, 1, 0],
   );
-  const exteriorTextY = useTransform(smoothProgress, [0.05, 0.4], ["0%", "-5%"]);
-  const exteriorForegroundY = useTransform(
-    smoothProgress,
-    [0.05, 0.4],
-    ["0%", "-2.5%"],
-  );
+  const exteriorTextY = useTransform(scrollYProgress, [0.05, 0.4], ["0%", "-5%"]);
 
-  const interiorOpacity = useTransform(smoothProgress, [0.68, 0.9], [0, 1]);
+  const interiorOpacity = useTransform(
+    scrollYProgress,
+    [0.68, 0.84, 0.93, 1],
+    [0, 1, 1, 0],
+  );
   const interiorTextY = useTransform(
-    smoothProgress,
+    scrollYProgress,
     [0.68, 0.93],
     ["6%", "0%"],
   );
   const interiorTextOpacity = useTransform(
-    smoothProgress,
-    [0.7, 0.9],
-    [0, 1],
+    scrollYProgress,
+    [0.7, 0.84, 0.93, 1],
+    [0, 1, 1, 0],
   );
-  const interiorForegroundY = useTransform(
-    smoothProgress,
-    [0.68, 0.93],
-    ["4%", "0%"],
-  );
-  const featureRailOpacity = useTransform(smoothProgress, [0, 0.48, 1], [1, 0.92, 1]);
-  const scrollLine = useTransform(smoothProgress, [0, 1], [0, 1]);
+  const featureRailOpacity = useTransform(scrollYProgress, [0, 0.36, 0.52], [1, 1, 0]);
+  const scrollLine = useTransform(scrollYProgress, [0, 1], [0, 1]);
   const scrollHintOpacity = useTransform(
-    smoothProgress,
+    scrollYProgress,
     [0, 0.34, 0.56],
     [1, 1, 0],
   );
@@ -196,12 +215,12 @@ export function LayeredHeroExperience() {
       <ScrollDissolveReveal
         imageFront="/assets/hero/01.png"
         imageBack="/assets/hero/05.png"
-        containerClassName="absolute inset-0 z-0"
+        scrollProgress={scrollYProgress}
+        containerClassName="absolute inset-0 z-[5]"
         className="bg-obsidian"
       />
 
-      <div className="sticky top-0 z-10 h-[100svh] min-h-[640px] overflow-hidden sm:min-h-[680px]">
-        <Navbar />
+      <div className="sticky top-0 z-10 h-[100svh] overflow-hidden">
         <FeatureRail opacity={featureRailOpacity} />
 
         <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(180deg,rgba(3,7,12,.18)_0%,rgba(3,7,12,0)_43%,rgba(3,7,12,.36)_100%)]" />
@@ -226,10 +245,13 @@ export function LayeredHeroExperience() {
             initial={{ opacity: 0, scale: 1.04 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.18, duration: 1.45, ease: [0.2, 0.8, 0.2, 1] }}
-            style={{ y: exteriorForegroundY }}
             src="/assets/hero/03.png"
             alt=""
             aria-hidden="true"
+            decoding="async"
+            fetchPriority="high"
+            loading="eager"
+            draggable="false"
             className="pointer-events-none absolute inset-0 z-30 h-full w-full object-cover object-center"
           />
         </motion.section>
@@ -248,12 +270,14 @@ export function LayeredHeroExperience() {
 
           <motion.img
             style={{
-              y: interiorForegroundY,
               opacity: interiorTextOpacity,
             }}
             src="/assets/hero/08.png"
             alt=""
             aria-hidden="true"
+            decoding="async"
+            loading="eager"
+            draggable="false"
             className="pointer-events-none absolute inset-0 z-30 h-full w-full object-cover object-center"
           />
         </motion.section>
