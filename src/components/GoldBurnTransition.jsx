@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrthographicCamera, useTexture } from "@react-three/drei";
 import { motion, useMotionValue, useTransform } from "framer-motion";
@@ -24,6 +24,7 @@ const fragmentShader = `
   uniform float uEdgeIntensity;
   uniform float uPixelSize;
   uniform float uNoiseStrength;
+  uniform float uDirection;
   varying vec2 vUv;
 
   float hash(vec2 p) {
@@ -101,8 +102,8 @@ const fragmentShader = `
     float fine = hash(floor(vUv * uResolution / 4.0) + floor(uTime * 8.0));
 
     float burnLine = mix(-0.14, 1.14, uProgress) + (organic - 0.5) * uNoiseStrength;
-    float edgeWidth = 0.068;
-    float directional = vUv.y;
+    float edgeWidth = 0.022;
+    float directional = mix(vUv.y, 1.0 - vUv.y, uDirection);
 
     float keepMask = smoothstep(burnLine - edgeWidth, burnLine + edgeWidth, directional);
     float edgeBand = 1.0 - smoothstep(0.0, edgeWidth * 1.85, abs(directional - burnLine));
@@ -116,8 +117,8 @@ const fragmentShader = `
     vec3 finalColor = mix(tex.rgb, etchedImage, etchAmount);
 
     finalColor += gold * contour * keepMask * etchAmount * (0.22 + uEdgeIntensity * 0.38);
-    finalColor += gold * edgeBand * uEdgeIntensity * 1.9;
-    finalColor += amber * sparkle * uEdgeIntensity * 2.7;
+    finalColor += gold * edgeBand * uEdgeIntensity * 1.08;
+    finalColor += amber * sparkle * uEdgeIntensity * 1.32;
 
     float alpha = max(keepMask * tex.a, edgeBand * 0.72);
     alpha *= smoothstep(0.0, 0.035, uProgress) * (1.0 - smoothstep(0.985, 1.0, uProgress) * 0.45) + (1.0 - smoothstep(0.0, 0.035, uProgress));
@@ -126,7 +127,7 @@ const fragmentShader = `
   }
 `;
 
-function BurnPlane({ image, progress }) {
+function BurnPlane({ image, progress, direction }) {
   const texture = useTexture(image);
   const materialRef = useRef(null);
   const { size, invalidate } = useThree();
@@ -145,10 +146,11 @@ function BurnPlane({ image, progress }) {
       uProgress: { value: 0 },
       uTime: { value: 0 },
       uEdgeIntensity: { value: 1.0 },
-      uPixelSize: { value: 6.0 },
-      uNoiseStrength: { value: 0.2 },
+      uPixelSize: { value: 4.5 },
+      uNoiseStrength: { value: 0.085 },
+      uDirection: { value: direction === "top-to-bottom" ? 1 : 0 },
     }),
-    [texture, size]
+    [direction, texture, size]
   );
 
   useEffect(() => {
@@ -166,10 +168,10 @@ function BurnPlane({ image, progress }) {
     materialRef.current.uniforms.uTime.value = state.clock.getElapsedTime();
     materialRef.current.uniforms.uResolution.value.set(size.width, size.height);
     materialRef.current.uniforms.uEdgeIntensity.value =
-      0.55 + Math.sin(currentProgress * Math.PI) * 1.05;
+      0.45 + Math.sin(currentProgress * Math.PI) * 0.65;
     materialRef.current.uniforms.uPixelSize.value = THREE.MathUtils.lerp(
-      8.0,
-      4.25,
+      5.25,
+      3.5,
       currentProgress
     );
   });
@@ -189,7 +191,7 @@ function BurnPlane({ image, progress }) {
   );
 }
 
-function useSectionProgress(targetRef) {
+function useSectionProgress(targetRef, setPinned) {
   const progress = useMotionValue(0);
 
   useEffect(() => {
@@ -204,6 +206,8 @@ function useSectionProgress(targetRef) {
       const start = rect.top + window.scrollY;
       const travel = Math.max(1, target.offsetHeight - window.innerHeight);
       progress.set(THREE.MathUtils.clamp((window.scrollY - start) / travel, 0, 1));
+      const nextPinned = rect.top <= 0 && rect.bottom > 0;
+      setPinned((current) => (current === nextPinned ? current : nextPinned));
     };
 
     const requestUpdate = () => {
@@ -219,21 +223,17 @@ function useSectionProgress(targetRef) {
       window.removeEventListener("resize", requestUpdate);
       if (frame) window.cancelAnimationFrame(frame);
     };
-  }, [progress, targetRef]);
+  }, [progress, setPinned, targetRef]);
 
   return progress;
 }
 
-export function GoldBurnTransition({ children, frontOverlay }) {
+export function GoldBurnTransition({ children, direction = "bottom-to-top" }) {
   const sectionRef = useRef(null);
-  const scrollYProgress = useSectionProgress(sectionRef);
+  const [isPinned, setPinned] = useState(false);
+  const scrollYProgress = useSectionProgress(sectionRef, setPinned);
   const burnProgress = useTransform(scrollYProgress, [0.08, 0.82], [0, 1]);
   const overlayOpacity = useTransform(scrollYProgress, [0.86, 1], [1, 0]);
-  const frontOverlayOpacity = useTransform(
-    scrollYProgress,
-    [0, 0.08, 0.24],
-    [1, 1, 0],
-  );
 
   return (
     <section
@@ -242,7 +242,10 @@ export function GoldBurnTransition({ children, frontOverlay }) {
       className="relative z-20 h-[210svh] overflow-visible"
       aria-label="Gold pixel burn transition"
     >
-      <div className="sticky top-0 h-[100svh] overflow-hidden">
+      <div
+        className="sticky top-0 h-[100svh] overflow-hidden"
+        style={{ visibility: isPinned ? "visible" : "hidden" }}
+      >
         <div className="relative z-0 h-[100svh]">{children}</div>
 
         <motion.div
@@ -267,18 +270,13 @@ export function GoldBurnTransition({ children, frontOverlay }) {
                 far={10}
                 position={[0, 0, 1]}
               />
-              <BurnPlane image="/assets/hero/05.png" progress={burnProgress} />
+              <BurnPlane
+                image="/assets/hero/05.png"
+                progress={burnProgress}
+                direction={direction}
+              />
             </Canvas>
         </motion.div>
-
-        {frontOverlay && (
-          <motion.div
-            style={{ opacity: frontOverlayOpacity }}
-            className="pointer-events-none absolute inset-0 z-30 overflow-hidden"
-          >
-            {frontOverlay}
-          </motion.div>
-        )}
       </div>
     </section>
   );

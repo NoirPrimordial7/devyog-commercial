@@ -1,7 +1,4 @@
-import {
-  LayeredHeroExperience,
-  MixedUseBurnOverlay,
-} from "./components/LayeredHeroExperience";
+import { LayeredHeroExperience } from "./components/LayeredHeroExperience";
 import { Navbar } from "./components/Navbar";
 import { GoldBurnTransition } from "./components/GoldBurnTransition";
 import { PostHeroEditorialShell } from "./components/PostHeroEditorialShell";
@@ -17,7 +14,7 @@ export default function App() {
       <Navbar />
       <LayeredHeroExperience />
       <PostHeroEditorialShell>
-        <GoldBurnTransition frontOverlay={<MixedUseBurnOverlay />}>
+        <GoldBurnTransition direction="bottom-to-top">
           <LandmarkSection />
         </GoldBurnTransition>
         <OfferingsScrollSection />

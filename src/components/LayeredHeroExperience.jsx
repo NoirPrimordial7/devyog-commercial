@@ -130,30 +130,6 @@ function FeatureRail({ opacity, animateIn = true }) {
   );
 }
 
-export function MixedUseBurnOverlay({ opacity = 1 }) {
-  return (
-    <motion.div
-      style={{ opacity }}
-      className="pointer-events-none absolute inset-0 z-30 overflow-hidden"
-      aria-hidden="true"
-    >
-      <FeatureRail opacity={1} animateIn={false} />
-      <div className="absolute inset-0 z-10 bg-[linear-gradient(180deg,rgba(3,7,12,.18)_0%,rgba(3,7,12,0)_43%,rgba(3,7,12,.36)_100%)]" />
-      <div className="absolute inset-0 z-10 bg-[radial-gradient(circle_at_50%_50%,transparent_18%,rgba(1,4,8,.22)_100%)]" />
-      <div className="absolute inset-x-0 top-[21%] z-20 flex justify-center px-4 sm:top-[18%] lg:top-[14%]">
-        <LuxuryHeadline variant="interior" />
-      </div>
-      <img
-        src="/assets/hero/08.png"
-        alt=""
-        decoding="async"
-        draggable="false"
-        className="absolute inset-0 z-30 h-full w-full object-cover object-center"
-      />
-    </motion.div>
-  );
-}
-
 export function LayeredHeroExperience() {
   const experience = useRef(null);
   const { scrollYProgress } = useScroll({
@@ -185,13 +161,13 @@ export function LayeredHeroExperience() {
   );
   const interiorTextOpacity = useTransform(
     smoothProgress,
-    [0.67, 0.82],
-    [0, 1],
+    [0.67, 0.82, 0.94, 1],
+    [0, 1, 1, 0],
   );
   const featureRailOpacity = useTransform(
     smoothProgress,
-    [0, 0.44, 0.6, 0.78, 1],
-    [1, 0.92, 0, 0.92, 1],
+    [0, 0.44, 0.6, 0.78, 0.94, 1],
+    [1, 0.92, 0, 0.92, 0.92, 0],
   );
   const scrollLine = useTransform(smoothProgress, [0, 1], [0, 1]);
   const scrollHintOpacity = useTransform(
