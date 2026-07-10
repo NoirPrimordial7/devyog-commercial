@@ -4,7 +4,7 @@ import React from "react";
 
 export function PostHeroEditorialShell({ children }) {
   return (
-    <div className="relative -mt-[100svh] bg-[#e7decf] text-[#171510]">
+    <div className="relative bg-[#e7decf] text-[#171510]">
       <div
         aria-hidden="true"
         className="pointer-events-none sticky top-0 z-0 h-[100svh] overflow-hidden bg-[#e7decf]"

@@ -1,10 +1,11 @@
 import {
   motion,
-  useMotionValue,
+  useScroll,
+  useSpring,
   useTransform,
 } from "framer-motion";
 import { ArrowRight, Building2, Gem, Leaf, MapPin } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { ScrollDissolveReveal } from "@/components/ui/scroll-dissolve-reveal";
 
 function LuxuryHeadline({ variant }) {
@@ -129,72 +130,48 @@ function FeatureRail({ opacity }) {
   );
 }
 
-function useStoryProgress(targetRef) {
-  const progress = useMotionValue(0);
-
-  useEffect(() => {
-    let frame = 0;
-
-    const update = () => {
-      frame = 0;
-      const target = targetRef.current;
-      if (!target) return;
-
-      const rect = target.getBoundingClientRect();
-      const start = rect.top + window.scrollY;
-      const travel = Math.max(1, target.offsetHeight - window.innerHeight);
-      const next = (window.scrollY - start) / travel;
-      progress.set(Math.min(1, Math.max(0, next)));
-    };
-
-    const requestUpdate = () => {
-      if (!frame) frame = window.requestAnimationFrame(update);
-    };
-
-    update();
-    window.addEventListener("scroll", requestUpdate, { passive: true });
-    window.addEventListener("resize", requestUpdate, { passive: true });
-
-    return () => {
-      window.removeEventListener("scroll", requestUpdate);
-      window.removeEventListener("resize", requestUpdate);
-      if (frame) window.cancelAnimationFrame(frame);
-    };
-  }, [progress, targetRef]);
-
-  return progress;
-}
-
 export function LayeredHeroExperience() {
   const experience = useRef(null);
-  const scrollYProgress = useStoryProgress(experience);
+  const { scrollYProgress } = useScroll({
+    target: experience,
+    offset: ["start start", "end end"],
+  });
+  const smoothProgress = useSpring(scrollYProgress, {
+    stiffness: 112,
+    damping: 27,
+    restDelta: 0.001,
+  });
 
   const exteriorOpacity = useTransform(
-    scrollYProgress,
+    smoothProgress,
     [0, 0.22, 0.4],
     [1, 1, 0],
   );
-  const exteriorTextY = useTransform(scrollYProgress, [0.05, 0.4], ["0%", "-5%"]);
+  const exteriorTextY = useTransform(smoothProgress, [0.05, 0.4], ["0%", "-5%"]);
 
   const interiorOpacity = useTransform(
-    scrollYProgress,
-    [0.68, 0.84, 0.93, 1],
-    [0, 1, 1, 0],
+    smoothProgress,
+    [0.68, 0.9],
+    [0, 1],
   );
   const interiorTextY = useTransform(
-    scrollYProgress,
+    smoothProgress,
     [0.68, 0.93],
     ["6%", "0%"],
   );
   const interiorTextOpacity = useTransform(
-    scrollYProgress,
-    [0.7, 0.84, 0.93, 1],
-    [0, 1, 1, 0],
+    smoothProgress,
+    [0.7, 0.9],
+    [0, 1],
   );
-  const featureRailOpacity = useTransform(scrollYProgress, [0, 0.36, 0.52], [1, 1, 0]);
-  const scrollLine = useTransform(scrollYProgress, [0, 1], [0, 1]);
+  const featureRailOpacity = useTransform(
+    smoothProgress,
+    [0, 0.46, 0.64, 0.82, 1],
+    [1, 0.92, 0, 0.92, 1],
+  );
+  const scrollLine = useTransform(smoothProgress, [0, 1], [0, 1]);
   const scrollHintOpacity = useTransform(
-    scrollYProgress,
+    smoothProgress,
     [0, 0.34, 0.56],
     [1, 1, 0],
   );
@@ -215,7 +192,6 @@ export function LayeredHeroExperience() {
       <ScrollDissolveReveal
         imageFront="/assets/hero/01.png"
         imageBack="/assets/hero/05.png"
-        scrollProgress={scrollYProgress}
         containerClassName="absolute inset-0 z-[5]"
         className="bg-obsidian"
       />
