@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrthographicCamera, useTexture } from "@react-three/drei";
-import { motion, useMotionValue, useTransform } from "framer-motion";
+import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import * as THREE from "three";
 
 const vertexShader = `
@@ -92,35 +92,29 @@ const fragmentShader = `
     vec2 uv = coverUv(vUv);
     vec4 tex = texture2D(uTexture, uv);
 
-    float etchAmount = smoothstep(0.02, 0.28, uProgress);
-    float gray = burnLuma(tex.rgb);
-    vec3 etchedImage = mix(tex.rgb, vec3(gray), 0.82);
-    etchedImage = mix(etchedImage, vec3(0.018, 0.019, 0.018), 0.42);
-
     vec2 pixelUv = floor(vUv * uResolution / uPixelSize) * uPixelSize / uResolution;
     float organic = fbm(pixelUv * 7.5 + vec2(uTime * 0.045, -uTime * 0.032));
     float fine = hash(floor(vUv * uResolution / 4.0) + floor(uTime * 8.0));
 
     float burnLine = mix(-0.14, 1.14, uProgress) + (organic - 0.5) * uNoiseStrength;
-    float edgeWidth = 0.022;
+    float edgeWidth = 0.01;
     float directional = mix(vUv.y, 1.0 - vUv.y, uDirection);
 
     float keepMask = smoothstep(burnLine - edgeWidth, burnLine + edgeWidth, directional);
     float edgeBand = 1.0 - smoothstep(0.0, edgeWidth * 1.85, abs(directional - burnLine));
+    float softHalo = 1.0 - smoothstep(0.0, edgeWidth * 3.2, abs(directional - burnLine));
 
-    vec2 texel = 1.0 / max(uImageResolution, vec2(1.0));
-    float contour = imageEdge(uTexture, uv, texel);
-    float sparkle = step(0.48, fine) * edgeBand * (0.55 + organic * 1.25);
+    float sparkle = step(0.84, fine) * edgeBand * (0.35 + organic * 0.55);
 
-    vec3 gold = vec3(1.0, 0.69, 0.30);
-    vec3 amber = vec3(0.78, 0.45, 0.14);
-    vec3 finalColor = mix(tex.rgb, etchedImage, etchAmount);
+    vec3 gold = vec3(0.96, 0.67, 0.29);
+    vec3 amber = vec3(0.67, 0.36, 0.10);
+    vec3 finalColor = tex.rgb;
 
-    finalColor += gold * contour * keepMask * etchAmount * (0.22 + uEdgeIntensity * 0.38);
-    finalColor += gold * edgeBand * uEdgeIntensity * 1.08;
-    finalColor += amber * sparkle * uEdgeIntensity * 1.32;
+    finalColor += amber * softHalo * uEdgeIntensity * 0.18;
+    finalColor += gold * edgeBand * uEdgeIntensity * 0.82;
+    finalColor += gold * sparkle * uEdgeIntensity * 0.34;
 
-    float alpha = max(keepMask * tex.a, edgeBand * 0.72);
+    float alpha = max(keepMask * tex.a, edgeBand * 0.88);
     alpha *= smoothstep(0.0, 0.035, uProgress) * (1.0 - smoothstep(0.985, 1.0, uProgress) * 0.45) + (1.0 - smoothstep(0.0, 0.035, uProgress));
 
     gl_FragColor = vec4(finalColor, alpha);
@@ -146,8 +140,8 @@ function BurnPlane({ image, progress, direction }) {
       uProgress: { value: 0 },
       uTime: { value: 0 },
       uEdgeIntensity: { value: 1.0 },
-      uPixelSize: { value: 4.5 },
-      uNoiseStrength: { value: 0.085 },
+      uPixelSize: { value: 3.25 },
+      uNoiseStrength: { value: 0.055 },
       uDirection: { value: direction === "top-to-bottom" ? 1 : 0 },
     }),
     [direction, texture, size]
@@ -168,10 +162,10 @@ function BurnPlane({ image, progress, direction }) {
     materialRef.current.uniforms.uTime.value = state.clock.getElapsedTime();
     materialRef.current.uniforms.uResolution.value.set(size.width, size.height);
     materialRef.current.uniforms.uEdgeIntensity.value =
-      0.45 + Math.sin(currentProgress * Math.PI) * 0.65;
+      0.3 + Math.sin(currentProgress * Math.PI) * 0.35;
     materialRef.current.uniforms.uPixelSize.value = THREE.MathUtils.lerp(
-      5.25,
-      3.5,
+      3.75,
+      2.25,
       currentProgress
     );
   });
@@ -232,8 +226,19 @@ export function GoldBurnTransition({ children, direction = "bottom-to-top" }) {
   const sectionRef = useRef(null);
   const [isPinned, setPinned] = useState(false);
   const scrollYProgress = useSectionProgress(sectionRef, setPinned);
-  const burnProgress = useTransform(scrollYProgress, [0.08, 0.82], [0, 1]);
-  const overlayOpacity = useTransform(scrollYProgress, [0.86, 1], [1, 0]);
+  const smoothProgress = useSpring(scrollYProgress, {
+    stiffness: 145,
+    damping: 31,
+    mass: 0.28,
+    restDelta: 0.0005,
+  });
+  const burnProgress = useTransform(smoothProgress, [0.08, 0.82], [0, 1]);
+  const overlayOpacity = useTransform(smoothProgress, [0.86, 1], [1, 0]);
+  const incomingY = useTransform(
+    smoothProgress,
+    [0, 0.72, 1],
+    ["14svh", "8svh", "0svh"],
+  );
 
   return (
     <section
@@ -246,7 +251,12 @@ export function GoldBurnTransition({ children, direction = "bottom-to-top" }) {
         className="sticky top-0 h-[100svh] overflow-hidden"
         style={{ visibility: isPinned ? "visible" : "hidden" }}
       >
-        <div className="relative z-0 h-[100svh]">{children}</div>
+        <motion.div
+          style={{ y: incomingY }}
+          className="relative z-0 h-[100svh] will-change-transform"
+        >
+          {children}
+        </motion.div>
 
         <motion.div
           aria-hidden="true"
