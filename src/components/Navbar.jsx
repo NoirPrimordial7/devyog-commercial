@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { ArrowUpRight, Search } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 
 const lightSectionIds = new Set([
   "project-visualization",
@@ -62,6 +63,8 @@ function useNavbarTone() {
 }
 
 export function Navbar() {
+  const location = useLocation();
+  const homePrefix = location.pathname === "/" ? "" : "/";
   const isOnLightBackground = useNavbarTone();
   const foreground = isOnLightBackground ? "text-[#171510]" : "text-ivory";
   const muted = isOnLightBackground ? "text-[#171510]/66" : "text-white/72";
@@ -78,7 +81,7 @@ export function Navbar() {
         aria-label="Primary navigation"
       >
         <a
-          href="#exterior"
+          href={`${homePrefix}#exterior`}
           className="group flex min-w-0 shrink-0 items-center gap-2.5"
           aria-label="DEVYOG Builders and Developers home"
         >
@@ -97,17 +100,17 @@ export function Navbar() {
         </a>
 
         <div className={`hidden items-center gap-6 font-semibold tracking-[-0.015em] md:flex lg:gap-9 ${muted}`}>
-          <a href="#project-visualization" className="transition-colors duration-300 hover:text-champagne">
+          <a href={`${homePrefix}#project-visualization`} className="transition-colors duration-300 hover:text-champagne">
             Project
           </a>
-          <a href="#offerings" className="transition-colors duration-300 hover:text-champagne">
+          <a href={`${homePrefix}#offerings`} className="transition-colors duration-300 hover:text-champagne">
             Facility Mix
           </a>
-          <a href="#investor-options" className="transition-colors duration-300 hover:text-champagne">
+          <a href={`${homePrefix}#investor-options`} className="transition-colors duration-300 hover:text-champagne">
             Investor
           </a>
           <a
-            href="#contact"
+            href={`${homePrefix}#contact`}
             className="hidden items-center gap-1.5 transition-colors duration-300 hover:text-champagne lg:inline-flex"
           >
             Search <Search size={13} strokeWidth={1.8} />
@@ -124,7 +127,7 @@ export function Navbar() {
             Devyogprojects.com
           </a>
           <a
-            href="#contact"
+            href={`${homePrefix}#contact`}
             className={`group inline-flex h-8 items-center justify-center gap-1.5 rounded-full px-3 text-[10px] font-extrabold tracking-[-0.01em] shadow-[0_6px_24px_rgba(0,0,0,0.12)] transition-[color,background-color,transform] duration-300 hover:scale-[1.035] sm:h-9 sm:px-4 sm:text-[11px] ${
               isOnLightBackground
                 ? "bg-[#171510] text-[#f7f0e4]"
