@@ -5,10 +5,9 @@ import { Navbar } from "./components/Navbar";
 import { PostHeroEditorialShell } from "./components/PostHeroEditorialShell";
 import { LandmarkSection } from "./components/LandmarkSection";
 import { OfferingsScrollSection } from "./components/OfferingsScrollSection";
-import { InvestorModelsSection } from "./components/InvestorModelsSection";
 import { CTASection } from "./components/CTASection";
 import { Footer } from "./components/Footer";
-import { InvestmentDossierSection } from "./components/InvestmentDossierSection";
+import { InvestmentJourney } from "./components/InvestmentJourney";
 
 const InvestmentOpportunityPage = lazy(() => import("./pages/InvestmentOpportunityPage"));
 const LocationAccessibilityPage = lazy(() => import("./pages/LocationAccessibilityPage"));
@@ -23,8 +22,7 @@ function Homepage() {
       <PostHeroEditorialShell>
         <LandmarkSection />
         <OfferingsScrollSection />
-        <InvestmentDossierSection />
-        <InvestorModelsSection />
+        <InvestmentJourney />
       </PostHeroEditorialShell>
       <CTASection />
       <Footer />

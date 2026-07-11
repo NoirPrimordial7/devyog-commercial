@@ -164,7 +164,8 @@ export function InvestmentDossierDesktop() {
   const tabsOpacity = useTransform(progress, [dossierTimeline.open[1] - 0.006, dossierTimeline.open[1] + 0.012, dossierTimeline.close[0], dossierTimeline.close[0] + 0.018], [0, 1, 1, 0]);
   const shadowClip = useTransform(progress, [0, dossierTimeline.open[0], shellOpenEnd, shellCloseStart, interiorHiddenAt, 1], ["inset(0 0 0 50%)", "inset(0 0 0 50%)", "inset(0 0 0 0%)", "inset(0 0 0 0%)", "inset(0 0 0 50%)", "inset(0 0 0 50%)"]);
   const shadowOpacity = useTransform(progress, [0, dossierTimeline.open[1], dossierTimeline.close[0], 1], [0.86, 0.68, 0.68, 0.88]);
-  const stageOpacity = useTransform(progress, [0, 0.985, 1], [1, 1, 0]);
+  // The closed physical dossier remains visible beneath the shared Revenue Architecture handoff.
+  const stageOpacity = useTransform(progress, [0, 1], [1, 1]);
   const closingOpacity = useTransform(progress, [dossierTimeline.close[0] + 0.02, 0.98], [0, 1]);
 
   useEffect(() => {
