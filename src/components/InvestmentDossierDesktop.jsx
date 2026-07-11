@@ -21,10 +21,11 @@ function SpreadLayer({ chapter, index, progress, activeIndex }) {
   const timeline = dossierTimeline.chapters[index];
   const localProgress = useTransform(progress, timeline.story, [0, 1], { clamp: true });
   const visibleStart = index === 0 ? dossierTimeline.open[0] + 0.005 : chapterThresholds[index - 1];
-  const visibleEnd = index < 3 ? chapterThresholds[index] : dossierTimeline.close[0];
+  const closingDuration = dossierTimeline.close[1] - dossierTimeline.close[0];
+  const visibleEnd = index < 3 ? chapterThresholds[index] : dossierTimeline.close[0] + closingDuration * 0.72;
   const opacity = useTransform(progress, [visibleStart - 0.012, visibleStart + 0.012, visibleEnd, visibleEnd + 0.016], [0, 1, 1, 0]);
-  const rightFadeStart = timeline.turn ? timeline.turn[0] : dossierTimeline.close[0];
-  const rightFadeEnd = timeline.turn ? timeline.turn[0] + (timeline.turn[1] - timeline.turn[0]) * 0.16 : dossierTimeline.close[0] + 0.022;
+  const rightFadeStart = timeline.turn ? timeline.turn[0] : dossierTimeline.close[0] + closingDuration * 0.6;
+  const rightFadeEnd = timeline.turn ? timeline.turn[0] + (timeline.turn[1] - timeline.turn[0]) * 0.16 : dossierTimeline.close[0] + closingDuration * 0.76;
   const rightOpacity = useTransform(progress, [rightFadeStart, rightFadeEnd], [1, 0], { clamp: true });
 
   return (
@@ -95,7 +96,14 @@ function FolioTabs({ activeIndex, opacity }) {
 
 function ModernCover({ progress, reducedMotion }) {
   const [start, end] = dossierTimeline.open;
-  const rightRotate = useTransform(progress, [0, start, end, dossierTimeline.close[0], 1], [0, 0, reducedMotion ? -8 : -180, reducedMotion ? -8 : -180, 0]);
+  const openDuration = end - start;
+  const closeStart = dossierTimeline.close[0];
+  const closeDuration = dossierTimeline.close[1] - closeStart;
+  const rightRotate = useTransform(
+    progress,
+    [0, start, start + openDuration * 0.28, start + openDuration * 0.72, end, closeStart, closeStart + closeDuration * 0.28, closeStart + closeDuration * 0.72, 1],
+    [0, 0, reducedMotion ? -3 : -10, reducedMotion ? -7 : -170, reducedMotion ? -8 : -180, reducedMotion ? -8 : -180, reducedMotion ? -7 : -170, reducedMotion ? -3 : -10, 0],
+  );
   const coverOpacity = useTransform(progress, [0, end - 0.008, end + 0.008, dossierTimeline.close[0] - 0.008, dossierTimeline.close[0] + 0.008, 1], [1, 1, 0, 0, 1, 1]);
   const sweepX = useTransform(progress, [dossierTimeline.approach[0], start], ["-120%", "140%"]);
 
@@ -140,16 +148,21 @@ export function InvestmentDossierDesktop() {
 
   const deskX = useTransform(pointerX, [-1, 1], [-5, 5]);
   const deskY = useTransform(pointerY, [-1, 1], [-3, 3]);
-  const folioX = useTransform(progress, [0, dossierTimeline.approach[1], dossierTimeline.open[1], dossierTimeline.close[0], 1], ["-25%", "-25%", "0%", "0%", "-25%"]);
-  const folioScaleX = useTransform(progress, [0, dossierTimeline.approach[1], dossierTimeline.open[1], dossierTimeline.close[0], 1], [1.03, 1.03, 1, 1, 1.03]);
-  const folioScaleY = useTransform(progress, [0, dossierTimeline.entry[1], dossierTimeline.approach[1], dossierTimeline.open[1], dossierTimeline.close[0], 1], [0.73, 0.73, 0.8, 1, 1, 0.73]);
+  const openingDuration = dossierTimeline.open[1] - dossierTimeline.open[0];
+  const closingDuration = dossierTimeline.close[1] - dossierTimeline.close[0];
+  const shellOpenEnd = dossierTimeline.open[0] + openingDuration * 0.36;
+  const shellCloseStart = dossierTimeline.close[0] + closingDuration * 0.72;
+  const folioX = useTransform(progress, [0, dossierTimeline.approach[1], dossierTimeline.open[0], shellOpenEnd, dossierTimeline.close[0], shellCloseStart, 1], ["-25%", "-25%", "-25%", "0%", "0%", "0%", "-25%"]);
+  const folioScaleX = useTransform(progress, [0, dossierTimeline.open[0], shellOpenEnd, shellCloseStart, 1], [1.03, 1.03, 1, 1, 1.03]);
+  const folioScaleY = useTransform(progress, [0, dossierTimeline.entry[1], dossierTimeline.approach[1], dossierTimeline.open[0], shellOpenEnd, shellCloseStart, 1], [0.73, 0.73, 0.8, 0.8, 1, 1, 0.73]);
   const arrivalRotateX = useTransform(progress, [0, dossierTimeline.approach[1], dossierTimeline.open[1], dossierTimeline.close[0], 1], [7, 4.5, 0, 0, 7]);
   const arrivalRotateZ = useTransform(progress, [0, dossierTimeline.approach[1], dossierTimeline.open[1], dossierTimeline.close[0], 1], [-1, -0.65, 0, 0, -1]);
   const arrivalY = useTransform(progress, [0, dossierTimeline.approach[1], dossierTimeline.open[1], dossierTimeline.close[0], 1], [38, 20, 0, 0, 34]);
-  const interiorClip = useTransform(progress, [0, dossierTimeline.open[0], dossierTimeline.open[1], dossierTimeline.close[0], 1], ["inset(0 0 0 50%)", "inset(0 0 0 50%)", "inset(0 0 0 0%)", "inset(0 0 0 0%)", "inset(0 0 0 50%)"]);
-  const interiorOpacity = useTransform(progress, [0, dossierTimeline.open[0], dossierTimeline.open[0] + 0.016, dossierTimeline.open[1], dossierTimeline.close[0], 1], [0, 0, 0.45, 1, 1, 0]);
+  const interiorClip = useTransform(progress, [0, dossierTimeline.open[0], shellOpenEnd, shellCloseStart, 1], ["inset(0 0 0 50%)", "inset(0 0 0 50%)", "inset(0 0 0 0%)", "inset(0 0 0 0%)", "inset(0 0 0 50%)"]);
+  const interiorHiddenAt = shellCloseStart + closingDuration * 0.14;
+  const interiorOpacity = useTransform(progress, [0, dossierTimeline.open[0], shellOpenEnd, shellCloseStart, interiorHiddenAt, 1], [0, 0, 1, 1, 0, 0]);
   const tabsOpacity = useTransform(progress, [dossierTimeline.open[1] - 0.006, dossierTimeline.open[1] + 0.012, dossierTimeline.close[0], dossierTimeline.close[0] + 0.018], [0, 1, 1, 0]);
-  const shadowClip = interiorClip;
+  const shadowClip = useTransform(progress, [0, dossierTimeline.open[0], shellOpenEnd, shellCloseStart, interiorHiddenAt, 1], ["inset(0 0 0 50%)", "inset(0 0 0 50%)", "inset(0 0 0 0%)", "inset(0 0 0 0%)", "inset(0 0 0 50%)", "inset(0 0 0 50%)"]);
   const shadowOpacity = useTransform(progress, [0, dossierTimeline.open[1], dossierTimeline.close[0], 1], [0.86, 0.68, 0.68, 0.88]);
   const stageOpacity = useTransform(progress, [0, 0.985, 1], [1, 1, 0]);
   const closingOpacity = useTransform(progress, [dossierTimeline.close[0] + 0.02, 0.98], [0, 1]);

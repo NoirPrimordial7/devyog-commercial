@@ -291,7 +291,8 @@
 
 /* Single front cover that pivots from the true spine. */
 .folio-cover-system { position: absolute; z-index: var(--z-cover); inset: 0; pointer-events: none; transform-style: preserve-3d; }
-.folio-cover-half--right { position: absolute; top: 0; bottom: 0; left: 50%; width: 50%; transform-origin: left center; transform-style: preserve-3d; }
+.folio-cover-half--right { position: absolute; top: 0; bottom: 0; left: 50%; width: 50%; transform-origin: 0% 50%; transform-style: preserve-3d; will-change: transform; }
+.folio-cover-half--right::after { content: ""; position: absolute; z-index: -1; top: 3%; bottom: 1%; left: -2%; width: 104%; background: linear-gradient(105deg, rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0.12) 48%, transparent 78%); filter: blur(18px); transform: translate(14px, 13px); opacity: 0.58; backface-visibility: hidden; pointer-events: none; }
 .folio-cover-front, .folio-cover-liner { position: absolute; inset: 0; overflow: hidden; backface-visibility: hidden; border-radius: 2px 7px 7px 2px; }
 .folio-cover-front {
   display: flex;

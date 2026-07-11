@@ -30,9 +30,9 @@ export function EditorialMedia({ mediaKey, className = "", priority = false }) {
 }
 
 
-function Reveal({ progress, from, to, className = "", children, scale = false }) {
-  const opacity = useTransform(progress, [from, to], [0, 1]);
-  const y = useTransform(progress, [from, to], [scale ? 10 : 7, 0]);
+function Reveal({ progress, from, to, className = "", children, scale = false, initialOpacity = 0 }) {
+  const opacity = useTransform(progress, [from, to], [initialOpacity, 1]);
+  const y = useTransform(progress, [from, to], [initialOpacity ? 0 : scale ? 10 : 7, 0]);
   const zoom = useTransform(progress, [from, to], [scale ? 0.975 : 1, 1]);
   return <motion.div className={className} style={{ opacity, y, scale: zoom }}>{children}</motion.div>;
 }
@@ -79,7 +79,7 @@ function LeftStoryPage({ chapter, active, progress, mediaKey, mediaClass = "", m
     <FolioPage side="left" chapterId={chapter.id}>
       <FolioHeader chapter={chapter} />
       <main className="folio-main folio-main--left">
-        <Reveal progress={progress} from={0.08} to={0.34} className={`folio-primary-media ${mediaClass}`} scale>
+        <Reveal progress={progress} from={0.08} to={0.34} className={`folio-primary-media ${mediaClass}`} scale initialOpacity={chapter.id === "opportunity" ? 0.88 : 0}>
           <EditorialMedia mediaKey={mediaKey} priority={chapter.id === "opportunity"} />
           <span className="folio-caption">{mediaCaption}</span>
         </Reveal>
@@ -111,15 +111,15 @@ function OpportunitySpread({ chapter, progress, active, rightOpacity }) {
           <motion.path style={{ pathLength }} d="M90 120 C250 145 195 325 340 350 S430 500 530 590" />
         </svg>
         <div className="opportunity-grid">
-          <Reveal progress={progress} from={0.12} to={0.4} className="opportunity-activity" scale>
+          <Reveal progress={progress} from={0.12} to={0.4} className="opportunity-activity" scale initialOpacity={0.9}>
             <EditorialMedia mediaKey="opportunityActivity" priority />
             <span className="folio-caption">02 / Everyday activity</span>
           </Reveal>
-          <Reveal progress={progress} from={0.46} to={0.76} className="opportunity-destination" scale>
+          <Reveal progress={progress} from={0.46} to={0.76} className="opportunity-destination" scale initialOpacity={0.68}>
             <EditorialMedia mediaKey="opportunityDestination" priority />
             <span className="folio-caption">03 / Chosen destination</span>
           </Reveal>
-          <Reveal progress={progress} from={0.75} to={0.96} className="folio-statement opportunity-statement">
+          <Reveal progress={progress} from={0.75} to={0.96} className="folio-statement opportunity-statement" initialOpacity={0.72}>
             {chapter.statement.map((line) => <span key={line}>{line}</span>)}
           </Reveal>
         </div>
