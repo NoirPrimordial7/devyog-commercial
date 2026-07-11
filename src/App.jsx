@@ -19,13 +19,14 @@ function Homepage() {
   return (
     <>
       <Navbar />
-      <LayeredHeroExperience />
-      <PostHeroEditorialShell>
-        <LandmarkSection />
-        <OfferingsScrollSection />
-        <InvestmentDossierSection />
-        <InvestorModelsSection />
-      </PostHeroEditorialShell>
+      <LayeredHeroExperience>
+        <PostHeroEditorialShell>
+          <LandmarkSection />
+          <OfferingsScrollSection />
+          <InvestmentDossierSection />
+          <InvestorModelsSection />
+        </PostHeroEditorialShell>
+      </LayeredHeroExperience>
       <CTASection />
       <Footer />
     </>
