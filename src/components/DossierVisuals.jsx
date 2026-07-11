@@ -1,228 +1,272 @@
+import { useId } from "react";
+import { Link } from "react-router-dom";
 import { motion, useTransform } from "framer-motion";
+import { ArrowUpRight } from "lucide-react";
+import { dossierMedia } from "./investmentDossierData";
+import { INDIA_PATH, MAHARASHTRA_PATH } from "./dossierMapPaths";
 
-const artwork = {
-  opportunity: {
-    src: "/assets/dossier/chapter-01-opportunity.webp",
-    small: "/assets/dossier/chapter-01-opportunity-small.webp",
-    alt: "Architectural floor plates and demand routes converging on an illuminated mixed-use commercial destination.",
-  },
-  location: {
-    src: "/assets/dossier/chapter-02-location.webp",
-    small: "/assets/dossier/chapter-02-location-small.webp",
-    alt: "A glowing India globe progressing through regional map layers to a highlighted East Pune project location.",
-  },
-  ecosystem: {
-    src: "/assets/dossier/chapter-03-ecosystem.webp",
-    small: "/assets/dossier/chapter-03-ecosystem-small.webp",
-    alt: "An exploded mixed-use commercial building connecting offices, dining, wellness, infrastructure and parking.",
-  },
-  value: {
-    src: "/assets/dossier/chapter-04-value.webp",
-    small: "/assets/dossier/chapter-04-value-small.webp",
-    alt: "An adaptable illuminated building core surrounded by architectural systems for long-term relevance.",
-  },
-};
 
-function ProgressLabel({
-  progress,
-  active,
-  label,
-  explanation,
-  x,
-  y,
-  from = 0,
-  to = from + 0.12,
-  align = "left",
-  quiet = false,
-}) {
-  const opacity = useTransform(progress, [from, to], [0, quiet ? 0.58 : 1]);
-  const lift = useTransform(progress, [from, to], [8, 0]);
+export function EditorialMedia({ mediaKey, className = "", priority = false }) {
+  const media = dossierMedia[mediaKey];
 
   return (
-    <motion.button
-      type="button"
-      className={`visual-label visual-label--${align}${quiet ? " is-quiet" : ""}`}
-      style={{ left: x, top: y, opacity, y: lift }}
-      tabIndex={active ? 0 : -1}
-      aria-label={`${label}. ${explanation}`}
-    >
-      <span className="visual-label__node" aria-hidden="true" />
-      <span className="visual-label__text">{label}</span>
-      <span className="visual-label__explanation" role="tooltip">{explanation}</span>
-    </motion.button>
-  );
-}
-
-function ArtworkFrame({ type, active, progress, pointerX, pointerY, children }) {
-  const reveal = useTransform(progress, [0, 0.16], [0.42, 1]);
-  const imageScale = useTransform(progress, [0, 1], [1.055, 1.015]);
-
-  return (
-    <div className={`dossier-visual dossier-visual--${type}`}>
-      <motion.div
-        className="dossier-artwork-depth"
-        style={{ x: pointerX, y: pointerY, scale: imageScale, opacity: reveal }}
-      >
+    <figure className={`folio-media ${className}`} style={{ "--media-aspect": media.aspect }}>
+      <picture>
+        <source media="(max-width: 767px)" srcSet={media.small} />
         <img
-          className="dossier-artwork"
-          src={artwork[type].src}
-          srcSet={`${artwork[type].small} 800w, ${artwork[type].src} 1600w`}
-          sizes="(max-width: 720px) 94vw, (max-width: 1100px) 52vw, 49vw"
-          alt={artwork[type].alt}
-          loading={type === "opportunity" ? "eager" : "lazy"}
-          fetchPriority={type === "opportunity" ? "high" : "auto"}
+          src={media.src}
+          alt={media.alt}
+          width={media.width}
+          height={media.height}
+          loading={priority ? "eager" : "lazy"}
+          fetchPriority={priority ? "high" : "auto"}
           decoding="async"
           draggable="false"
+          style={{ objectFit: media.fit, objectPosition: media.position }}
         />
-      </motion.div>
-      <div className="dossier-artwork-shade" aria-hidden="true" />
-      <div className="dossier-artwork-grid" aria-hidden="true" />
-      <motion.div className="dossier-visual-overlays" style={{ x: pointerX, y: pointerY }}>
+      </picture>
+    </figure>
+  );
+}
+
+
+function Reveal({ progress, from, to, className = "", children, scale = false }) {
+  const opacity = useTransform(progress, [from, to], [0, 1]);
+  const y = useTransform(progress, [from, to], [scale ? 10 : 7, 0]);
+  const zoom = useTransform(progress, [from, to], [scale ? 0.975 : 1, 1]);
+  return <motion.div className={className} style={{ opacity, y, scale: zoom }}>{children}</motion.div>;
+}
+
+
+function FolioHeader({ chapter }) {
+  return (
+    <header className="folio-header">
+      <p className="folio-marker">{chapter.number} <span aria-hidden="true">—</span> {chapter.marker}</p>
+      <h3 className="folio-headline">{chapter.title.map((line) => <span key={line}>{line}</span>)}</h3>
+      <p className="folio-body">{chapter.copy}</p>
+      <p className="folio-quote">{chapter.pullQuote.map((line) => <span key={line}>{line}</span>)}</p>
+    </header>
+  );
+}
+
+
+function FolioFooter({ chapter, active }) {
+  const rememberChapter = () => sessionStorage.setItem("devyog-dossier-return", chapter.id);
+  return (
+    <footer className="folio-footer">
+      <span>{chapter.number} / 04</span>
+      <Link
+        className="folio-cta"
+        to={chapter.route}
+        state={{ dossierChapter: chapter.id }}
+        onClick={rememberChapter}
+        tabIndex={active ? 0 : -1}
+      >
+        {chapter.cta} <ArrowUpRight size={14} aria-hidden="true" />
+      </Link>
+    </footer>
+  );
+}
+
+
+function FolioPage({ side, chapterId, className = "", children }) {
+  return <section className={`folio-page folio-page--${side} ${chapterId}-${side} ${className}`}>{children}</section>;
+}
+
+
+function LeftStoryPage({ chapter, active, progress, mediaKey, mediaClass = "", mediaCaption, children }) {
+  return (
+    <FolioPage side="left" chapterId={chapter.id}>
+      <FolioHeader chapter={chapter} />
+      <main className="folio-main folio-main--left">
+        <Reveal progress={progress} from={0.08} to={0.34} className={`folio-primary-media ${mediaClass}`} scale>
+          <EditorialMedia mediaKey={mediaKey} priority={chapter.id === "opportunity"} />
+          <span className="folio-caption">{mediaCaption}</span>
+        </Reveal>
         {children}
-      </motion.div>
-      <span className="sr-only">{active ? "Interactive chapter artwork active." : ""}</span>
+      </main>
+      <FolioFooter chapter={chapter} active={active} />
+    </FolioPage>
+  );
+}
+
+
+function RightStoryPage({ chapterId, rightOpacity, className = "", children }) {
+  return (
+    <FolioPage side="right" chapterId={chapterId} className={className}>
+      <motion.div className="folio-page-content" style={{ opacity: rightOpacity }}>{children}</motion.div>
+    </FolioPage>
+  );
+}
+
+
+function OpportunitySpread({ chapter, progress, active, rightOpacity }) {
+  const pathLength = useTransform(progress, [0.14, 0.75], [0, 1]);
+  return (
+    <>
+      <LeftStoryPage chapter={chapter} active={active} progress={progress} mediaKey="opportunitySite" mediaCaption="01 / Commercial footprint" />
+      <RightStoryPage chapterId={chapter.id} rightOpacity={rightOpacity}>
+        <div className="folio-label-rail" aria-label="Opportunity sequence"><span>SPACE</span><span>ACTIVITY</span><span>VALUE</span></div>
+        <svg className="folio-route opportunity-route" viewBox="0 0 620 720" aria-hidden="true">
+          <motion.path style={{ pathLength }} d="M90 120 C250 145 195 325 340 350 S430 500 530 590" />
+        </svg>
+        <div className="opportunity-grid">
+          <Reveal progress={progress} from={0.12} to={0.4} className="opportunity-activity" scale>
+            <EditorialMedia mediaKey="opportunityActivity" priority />
+            <span className="folio-caption">02 / Everyday activity</span>
+          </Reveal>
+          <Reveal progress={progress} from={0.46} to={0.76} className="opportunity-destination" scale>
+            <EditorialMedia mediaKey="opportunityDestination" priority />
+            <span className="folio-caption">03 / Chosen destination</span>
+          </Reveal>
+          <Reveal progress={progress} from={0.75} to={0.96} className="folio-statement opportunity-statement">
+            {chapter.statement.map((line) => <span key={line}>{line}</span>)}
+          </Reveal>
+        </div>
+      </RightStoryPage>
+    </>
+  );
+}
+
+
+export function MapTextureShape({ mediaKey, path, viewBox, label, className = "" }) {
+  const clipId = useId().replaceAll(":", "");
+  const media = dossierMedia[mediaKey];
+  return (
+    <article className={`location-card ${className}`}>
+      <svg viewBox={viewBox} role="img" aria-label={`${label} geographic outline`}>
+        <defs><clipPath id={clipId}><path d={path} /></clipPath></defs>
+        <image href={media.small} width="100%" height="100%" preserveAspectRatio="xMidYMid slice" clipPath={`url(#${clipId})`} />
+        <path className="location-outline" d={path} />
+      </svg>
+      <span className="location-card__index">{label}</span>
+    </article>
+  );
+}
+
+
+function LocationSpread({ chapter, progress, active, rightOpacity }) {
+  const routeLength = useTransform(progress, [0.12, 0.78], [0, 1]);
+  return (
+    <>
+      <FolioPage side="left" chapterId={chapter.id}>
+        <FolioHeader chapter={chapter} />
+        <main className="folio-main folio-main--left">
+          <Reveal progress={progress} from={0.08} to={0.34} className="folio-primary-media location-india-media" scale>
+            <MapTextureShape mediaKey="locationIndia" path={INDIA_PATH} viewBox="0 0 300 320" label="INDIA" className="is-india" />
+          </Reveal>
+          <span className="location-context">National context <i /> Regional momentum</span>
+        </main>
+        <FolioFooter chapter={chapter} active={active} />
+      </FolioPage>
+      <RightStoryPage chapterId={chapter.id} rightOpacity={rightOpacity}>
+        <svg className="folio-route location-route" viewBox="0 0 620 720" aria-hidden="true">
+          <motion.path style={{ pathLength: routeLength }} d="M52 132 C210 78 180 315 330 292 S410 520 560 514" />
+        </svg>
+        <div className="location-grid">
+          <Reveal progress={progress} from={0.2} to={0.48} className="location-maharashtra" scale>
+            <MapTextureShape mediaKey="locationMaharashtra" path={MAHARASHTRA_PATH} viewBox="0 0 300 240" label="MAHARASHTRA" className="is-maharashtra" />
+          </Reveal>
+          <Reveal progress={progress} from={0.48} to={0.78} className="location-east-pune" scale>
+            <article className="location-card is-east-pune">
+              <EditorialMedia mediaKey="locationEastPune" />
+              <span className="location-card__index">EAST PUNE</span>
+              <span className="location-target"><i aria-hidden="true" /> PROJECT LOCATION</span>
+            </article>
+          </Reveal>
+          <Reveal progress={progress} from={0.5} to={0.78} className="location-legend">
+            <span>PUNE</span><span>MANJARI–HADAPSAR</span><span>SOLAPUR–PUNE HIGHWAY</span>
+          </Reveal>
+          <Reveal progress={progress} from={0.78} to={0.98} className="folio-statement location-statement">
+            {chapter.statement.map((line) => <span key={line}>{line}</span>)}
+          </Reveal>
+        </div>
+      </RightStoryPage>
+    </>
+  );
+}
+
+
+const ecosystemLabels = ["GRADE-A OFFICES", "CO-WORKING", "FOOD & BEVERAGE", "IT-READY INFRASTRUCTURE", "WELLNESS", "SMART PARKING"];
+
+
+function EcosystemSpread({ chapter, progress, active, rightOpacity }) {
+  return (
+    <>
+      <LeftStoryPage chapter={chapter} active={active} progress={progress} mediaKey="ecosystemArrival" mediaCaption="Arrival / 08:30">
+        <Reveal progress={progress} from={0.3} to={0.55} className="daily-rhythm"><span>ARRIVE</span><i /><span>WORK</span><i /><span>CONNECT</span></Reveal>
+      </LeftStoryPage>
+      <RightStoryPage chapterId={chapter.id} rightOpacity={rightOpacity}>
+        <div className="ecosystem-grid">
+          <Reveal progress={progress} from={0.16} to={0.42} className="ecosystem-work" scale><EditorialMedia mediaKey="ecosystemWork" /><span className="folio-caption">Work / 08:30</span></Reveal>
+          <Reveal progress={progress} from={0.38} to={0.64} className="ecosystem-wellness" scale><EditorialMedia mediaKey="ecosystemWellness" /><span className="folio-caption">Recharge / 18:30</span></Reveal>
+          <Reveal progress={progress} from={0.54} to={0.8} className="ecosystem-dining" scale><EditorialMedia mediaKey="ecosystemDining" /><span className="folio-caption">Dine / 12:30</span></Reveal>
+        </div>
+        <Reveal progress={progress} from={0.48} to={0.82} className="ecosystem-legend">{ecosystemLabels.map((label) => <span key={label}>{label}</span>)}</Reveal>
+        <div className="ecosystem-bottom">
+          <div className="ecosystem-timebar"><span>08:30</span><i /><span>12:30</span><i /><span>18:30</span></div>
+          <Reveal progress={progress} from={0.78} to={0.98} className="folio-statement ecosystem-statement">{chapter.statement.map((line) => <span key={line}>{line}</span>)}</Reveal>
+        </div>
+      </RightStoryPage>
+    </>
+  );
+}
+
+
+const valuePrinciples = ["ADAPTABILITY", "INFRASTRUCTURE", "EXPERIENCE", "RELEVANCE"];
+
+
+function ValueSpread({ chapter, progress, active, rightOpacity }) {
+  const pathLength = useTransform(progress, [0.2, 0.66], [0, 1]);
+  return (
+    <>
+      <LeftStoryPage chapter={chapter} active={active} progress={progress} mediaKey="valuePlan" mediaCaption="Flexible commercial plate">
+        <svg className="value-mini-diagram" viewBox="0 0 420 72" aria-label="Adaptable layout diagram">
+          <motion.path style={{ pathLength }} d="M10 36 H104 L142 14 H246 L284 58 H410" />
+          {[10, 104, 142, 246, 284, 410].map((x) => <circle key={x} cx={x} cy={x === 142 ? 14 : x === 284 ? 58 : 36} r="3.5" />)}
+        </svg>
+      </LeftStoryPage>
+      <RightStoryPage chapterId={chapter.id} rightOpacity={rightOpacity}>
+        <div className="value-grid">
+          <Reveal progress={progress} from={0.18} to={0.46} className="value-infrastructure" scale><EditorialMedia mediaKey="valueInfrastructure" /><span className="folio-caption">Integrated infrastructure</span></Reveal>
+          <Reveal progress={progress} from={0.45} to={0.72} className="value-experience" scale><EditorialMedia mediaKey="valueExperience" /><span className="folio-caption">Enduring experience</span></Reveal>
+          <Reveal progress={progress} from={0.5} to={0.82} className="value-principles">{valuePrinciples.map((label, index) => <span key={label}><b>0{index + 1}</b>{label}</span>)}</Reveal>
+          <Reveal progress={progress} from={0.78} to={0.98} className="folio-statement value-statement">{chapter.statement.map((line) => <span key={line}>{line}</span>)}</Reveal>
+        </div>
+      </RightStoryPage>
+    </>
+  );
+}
+
+
+export function DossierEditorialSpread({ chapter, progress, active, rightOpacity }) {
+  if (chapter.id === "location") return <LocationSpread chapter={chapter} progress={progress} active={active} rightOpacity={rightOpacity} />;
+  if (chapter.id === "ecosystem") return <EcosystemSpread chapter={chapter} progress={progress} active={active} rightOpacity={rightOpacity} />;
+  if (chapter.id === "value") return <ValueSpread chapter={chapter} progress={progress} active={active} rightOpacity={rightOpacity} />;
+  return <OpportunitySpread chapter={chapter} progress={progress} active={active} rightOpacity={rightOpacity} />;
+}
+
+
+export function ChapterVisual({ type }) {
+  if (type === "location") {
+    return (
+      <div className="grid h-full grid-cols-2 gap-4">
+        <MapTextureShape mediaKey="locationIndia" path={INDIA_PATH} viewBox="0 0 300 320" label="INDIA" className="is-india" />
+        <div className="grid min-h-0 grid-rows-2 gap-4">
+          <MapTextureShape mediaKey="locationMaharashtra" path={MAHARASHTRA_PATH} viewBox="0 0 300 240" label="MAHARASHTRA" className="is-maharashtra" />
+          <EditorialMedia mediaKey="locationEastPune" priority />
+        </div>
+      </div>
+    );
+  }
+  const mediaKeys = type === "ecosystem"
+    ? ["ecosystemArrival", "ecosystemWork", "ecosystemDining", "ecosystemWellness"]
+    : type === "value"
+      ? ["valuePlan", "valueInfrastructure", "valueExperience"]
+      : ["opportunitySite", "opportunityActivity", "opportunityDestination"];
+  return (
+    <div className={`grid h-full gap-4 ${mediaKeys.length === 4 ? "grid-cols-2 grid-rows-2" : "grid-cols-2"}`}>
+      {mediaKeys.map((mediaKey, index) => <EditorialMedia key={mediaKey} mediaKey={mediaKey} priority={index === 0} className={mediaKeys.length === 3 && index === 0 ? "row-span-2" : ""} />)}
     </div>
   );
-}
-
-function OpportunityVisual({ active, progress, pointerX, pointerY }) {
-  const spaceOpacity = useTransform(progress, [0, 0.14, 0.34, 0.45], [0, 0.82, 0.82, 0]);
-  const demandOpacity = useTransform(progress, [0.32, 0.48, 0.65, 0.75], [0, 1, 1, 0]);
-  const valueOpacity = useTransform(progress, [0.68, 0.82], [0, 1]);
-  const routeLength = useTransform(progress, [0.28, 0.72], [0, 1]);
-  const systemOpacity = useTransform(progress, [0.68, 0.9], [0, 0.82]);
-
-  return (
-    <ArtworkFrame type="opportunity" active={active} progress={progress} pointerX={pointerX} pointerY={pointerY}>
-      <div className="opportunity-words" aria-hidden="true">
-        <motion.span className="opportunity-word is-space" style={{ opacity: spaceOpacity }}>SPACE</motion.span>
-        <motion.span className="opportunity-word is-demand" style={{ opacity: demandOpacity }}>DEMAND</motion.span>
-        <motion.span className="opportunity-word is-value" style={{ opacity: valueOpacity }}>VALUE</motion.span>
-      </div>
-      <svg className="visual-route-map" viewBox="0 0 600 760" aria-hidden="true">
-        <motion.path style={{ pathLength: routeLength }} d="M78 214 C190 250 184 392 305 417 S463 468 502 618" />
-        <motion.path style={{ pathLength: routeLength }} d="M510 250 C420 284 448 372 324 414 S176 514 132 638" />
-        <motion.circle style={{ opacity: systemOpacity }} cx="306" cy="416" r="96" />
-        <motion.circle style={{ opacity: systemOpacity }} cx="306" cy="416" r="142" />
-      </svg>
-      <ProgressLabel progress={progress} active={active} label="Site potential" explanation="The architectural footprint establishes the commercial opportunity." x="8%" y="17%" from={0.05} />
-      <ProgressLabel progress={progress} active={active} label="Demand routes" explanation="Business and everyday activity converge on the destination." x="61%" y="46%" from={0.38} align="right" />
-      <ProgressLabel progress={progress} active={active} label="Enduring relevance" explanation="A complete ecosystem turns space into a reason to return." x="9%" y="79%" from={0.72} />
-    </ArtworkFrame>
-  );
-}
-
-const locationLabels = [
-  ["India", "National context", "13%", "14%", 0.08, "left"],
-  ["Maharashtra", "Regional focus", "66%", "27%", 0.2, "right"],
-  ["Pune", "Metropolitan context", "12%", "39%", 0.32, "left"],
-  ["East Pune", "Commercial corridor", "66%", "50%", 0.44, "right"],
-  ["Manjari-Hadapsar", "Connected urban catchment", "8%", "61%", 0.56, "left"],
-  ["Solapur-Pune Highway", "Primary route relationship", "58%", "70%", 0.64, "right"],
-  ["Project Location", "The destination address", "14%", "84%", 0.72, "left"],
-];
-
-const connectivityLabels = [
-  ["Airport Access", "Air connectivity category", "4%", "31%"],
-  ["Rail Connectivity", "Rail connectivity category", "70%", "37%"],
-  ["Highway Linkage", "Road connectivity category", "3%", "50%"],
-  ["Urban Catchment", "Surrounding urban movement", "68%", "58%"],
-  ["IT & Business Districts", "Business demand relationship", "3%", "72%"],
-  ["Growth Belt", "Evolving corridor context", "72%", "79%"],
-];
-
-function LocationVisual({ active, progress, pointerX, pointerY }) {
-  const routeLength = useTransform(progress, [0.34, 0.78], [0, 1]);
-  const pulseOpacity = useTransform(progress, [0.66, 0.82], [0, 1]);
-
-  return (
-    <ArtworkFrame type="location" active={active} progress={progress} pointerX={pointerX} pointerY={pointerY}>
-      <svg className="visual-route-map location-route" viewBox="0 0 600 760" aria-hidden="true">
-        <motion.path style={{ pathLength: routeLength }} d="M300 112 C288 225 340 291 298 382 S352 520 318 658" />
-        <motion.circle className="location-pulse" style={{ opacity: pulseOpacity }} cx="318" cy="658" r="28" />
-        <motion.circle className="location-pulse" style={{ opacity: pulseOpacity }} cx="318" cy="658" r="13" />
-      </svg>
-      {locationLabels.map(([label, explanation, x, y, from, align]) => (
-        <ProgressLabel key={label} progress={progress} active={active} label={label} explanation={explanation} x={x} y={y} from={from} align={align} />
-      ))}
-      <div className="connectivity-labels">
-        {connectivityLabels.map(([label, explanation, x, y], index) => (
-          <ProgressLabel key={label} progress={progress} active={active} label={label} explanation={explanation} x={x} y={y} from={0.78 + index * 0.018} to={0.9 + index * 0.012} align={index % 2 ? "right" : "left"} quiet />
-        ))}
-      </div>
-    </ArtworkFrame>
-  );
-}
-
-const audienceLabels = [
-  ["Companies", "Connected to Grade-A offices", "2%", "19%", 0.56],
-  ["Professionals", "Connected to collaborative workspaces", "2%", "32%", 0.61],
-  ["Clients", "Connected to hospitality and meeting spaces", "2%", "45%", 0.66],
-  ["Visitors", "Connected to shared destination amenities", "68%", "55%", 0.71],
-  ["Diners", "Connected to food and beverage levels", "72%", "67%", 0.76],
-  ["Communities", "Connected to wellness and social spaces", "68%", "78%", 0.81],
-];
-
-const buildingLabels = [
-  ["Grade-A Offices", "Premium office volume", "64%", "13%", 0.08],
-  ["Co-working", "Collaborative work layer", "63%", "29%", 0.2],
-  ["Food & Beverage", "Dining and social layer", "61%", "45%", 0.32],
-  ["IT-ready Infrastructure", "Integrated technology network", "7%", "58%", 0.42],
-  ["Wellness", "Terrace and wellness layer", "8%", "70%", 0.5],
-  ["Smart Parking", "Structured circulation foundation", "61%", "86%", 0.56],
-];
-
-function EcosystemVisual({ active, progress, pointerX, pointerY }) {
-  const networkLength = useTransform(progress, [0.18, 0.84], [0, 1]);
-
-  return (
-    <ArtworkFrame type="ecosystem" active={active} progress={progress} pointerX={pointerX} pointerY={pointerY}>
-      <svg className="visual-route-map ecosystem-routes" viewBox="0 0 600 760" aria-hidden="true">
-        {[170, 260, 350, 440, 530, 620].map((targetY, index) => (
-          <motion.path key={targetY} style={{ pathLength: networkLength }} d={`${index < 3 ? "M40" : "M560"} ${145 + index * 80} C${index < 3 ? 170 : 430} ${145 + index * 80}, ${index < 3 ? 185 : 415} ${targetY}, 300 ${targetY}`} />
-        ))}
-      </svg>
-      {buildingLabels.map(([label, explanation, x, y, from], index) => (
-        <ProgressLabel key={label} progress={progress} active={active} label={label} explanation={explanation} x={x} y={y} from={from} align={index < 3 || index === 5 ? "right" : "left"} />
-      ))}
-      {audienceLabels.map(([label, explanation, x, y, from], index) => (
-        <ProgressLabel key={label} progress={progress} active={active} label={label} explanation={explanation} x={x} y={y} from={from} align={index > 2 ? "right" : "left"} quiet />
-      ))}
-    </ArtworkFrame>
-  );
-}
-
-const valueLabels = [
-  ["Adaptability", "Floor plates respond to changing needs", "7%", "18%", 0.28, "left"],
-  ["Infrastructure", "A connected core supports the whole", "63%", "31%", 0.43, "right"],
-  ["Experience", "Human-centred spaces create daily relevance", "7%", "62%", 0.58, "left"],
-  ["Relevance", "The complete system reaches equilibrium", "63%", "75%", 0.73, "right"],
-];
-
-function ValueVisual({ active, progress, pointerX, pointerY }) {
-  const orbitOne = useTransform(progress, [0.24, 0.46], [0, 1]);
-  const orbitTwo = useTransform(progress, [0.42, 0.66], [0, 1]);
-  const orbitThree = useTransform(progress, [0.58, 0.84], [0, 1]);
-  const equilibrium = useTransform(progress, [0.74, 0.94], [0, 0.85]);
-
-  return (
-    <ArtworkFrame type="value" active={active} progress={progress} pointerX={pointerX} pointerY={pointerY}>
-      <svg className="visual-route-map value-orbits" viewBox="0 0 600 760" aria-hidden="true">
-        <motion.ellipse style={{ pathLength: orbitOne }} cx="300" cy="370" rx="170" ry="272" />
-        <motion.ellipse style={{ pathLength: orbitTwo }} cx="300" cy="370" rx="238" ry="188" transform="rotate(-18 300 370)" />
-        <motion.ellipse style={{ pathLength: orbitThree }} cx="300" cy="370" rx="250" ry="126" transform="rotate(22 300 370)" />
-        <motion.circle style={{ opacity: equilibrium }} cx="300" cy="370" r="72" />
-      </svg>
-      {valueLabels.map(([label, explanation, x, y, from, align]) => (
-        <ProgressLabel key={label} progress={progress} active={active} label={label} explanation={explanation} x={x} y={y} from={from} align={align} />
-      ))}
-    </ArtworkFrame>
-  );
-}
-
-export function ChapterVisual({ type, active = true, progress, pointerX, pointerY }) {
-  if (type === "location") return <LocationVisual active={active} progress={progress} pointerX={pointerX} pointerY={pointerY} />;
-  if (type === "ecosystem") return <EcosystemVisual active={active} progress={progress} pointerX={pointerX} pointerY={pointerY} />;
-  if (type === "value") return <ValueVisual active={active} progress={progress} pointerX={pointerX} pointerY={pointerY} />;
-  return <OpportunityVisual active={active} progress={progress} pointerX={pointerX} pointerY={pointerY} />;
 }
