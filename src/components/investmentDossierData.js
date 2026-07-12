@@ -6,9 +6,17 @@ export const dossierTimeline = {
     { story: [0.163, 0.259], hold: [0.259, 0.307], turn: [0.307, 0.369] },
     { story: [0.369, 0.465], hold: [0.465, 0.513], turn: [0.513, 0.575] },
     { story: [0.575, 0.671], hold: [0.671, 0.719], turn: [0.719, 0.781] },
-    { story: [0.781, 0.877], hold: [0.877, 0.925], turn: null },
+    { story: [0.781, 0.835], hold: [0.835, 0.88], turn: null },
   ],
-  close: [0.925, 1],
+  handoff: {
+    finalHold: [0.835, 0.88],
+    withdrawal: [0.88, 0.90],
+    close: [0.90, 0.93],
+    metamorphosis: [0.93, 0.965],
+    emergence: [0.965, 0.99],
+    settle: [0.99, 1],
+  },
+  close: [0.90, 0.93],
 };
 
 export const dossierMedia = {
