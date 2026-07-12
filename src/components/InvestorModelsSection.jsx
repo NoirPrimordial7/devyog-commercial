@@ -75,7 +75,7 @@ export function InvestorModelsSection() {
     window.scrollTo({ top: top + (section.scrollHeight - window.innerHeight) * target, behavior: reducedMotion ? "auto" : "smooth" });
   };
 
-  if (mobile) return <RevenueArchitectureMobile models={revenueModels} />;
+  if (mobile || reducedMotion) return <RevenueArchitectureMobile models={revenueModels} reducedMotion={reducedMotion} />;
 
   return <section ref={sectionRef} id="investor-options" className="revenue-architecture" aria-labelledby="revenue-architecture-title">
     <RevenueArchitectureStage

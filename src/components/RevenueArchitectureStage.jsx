@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useTransform } from "framer-motion";
-import { ArrowDown, ArrowRight } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUpRight, Check } from "lucide-react";
 import { useMemo, useState } from "react";
 import { alignmentCopy, capitalProfile, revenueAssets } from "./revenueArchitectureData";
 
@@ -17,6 +17,8 @@ function StructureProof({ state, storyProgress, releaseProgress, transitionProgr
   const frameLength = useTransform(() => state === "exit" ? Math.max(0, Math.min(1, storyProgress.get() * 1.35)) : 0);
   const routeLength = useTransform(() => sourceIndex === 1 ? transitionProgress.get() : 0);
   const convergence = useTransform(() => sourceIndex === 2 ? transitionProgress.get() : 0);
+  const labelOpacity = useTransform(() => state === "blended" ? Math.max(0, Math.min(1, (storyProgress.get() - .55) * 3)) : 0);
+  const exitDetailOpacity = useTransform(() => state === "exit" ? Math.max(0, Math.min(1, (storyProgress.get() - .62) * 2.8)) : 0);
 
   return <motion.svg className={`ra-proof-svg ra-proof-svg--${state}`} viewBox="0 0 1000 650" preserveAspectRatio="xMidYMid meet" style={{ opacity: proofOpacity }} aria-hidden="true">
     <motion.path className="ra-lease-line" d="M130 574 H870" pathLength="1" style={{ pathLength: lineLength }} />
@@ -24,11 +26,13 @@ function StructureProof({ state, storyProgress, releaseProgress, transitionProgr
     <motion.g className="ra-use-bands" style={{ opacity: bandOpacity }}>
       <rect x="245" y="205" width="510" height="48" /><rect x="220" y="304" width="560" height="50" /><rect x="170" y="455" width="660" height="56" /><rect x="330" y="135" width="340" height="38" />
     </motion.g>
+    <motion.g className="ra-use-labels" style={{ opacity: labelOpacity }}><text x="270" y="238">OFFICES</text><text x="535" y="337">CO-WORKING</text><text x="610" y="491">FOOD &amp; BEVERAGE</text></motion.g>
     <motion.g className="ra-operating-routes" style={{ opacity: routeLength }}>
       <path d="M500 520 L390 402 L340 282" /><path d="M500 520 L500 350 L500 184" /><path d="M500 520 L620 402 L690 270" /><path d="M500 520 L735 475" />
     </motion.g>
     <motion.g className="ra-convergence-routes" style={{ opacity: convergence }}><path d="M250 260 L500 520"/><path d="M500 190 L500 520"/><path d="M750 280 L500 520"/></motion.g>
     <motion.rect className="ra-exit-frame" x="122" y="72" width="756" height="500" rx="3" pathLength="1" style={{ pathLength: frameLength }} />
+    <motion.g className="ra-exit-details" style={{ opacity: exitDetailOpacity }}><path d="M122 106 h28 M122 106 v28 M878 106 h-28 M878 106 v28 M122 572 h28 M122 572 v-28 M878 572 h-28 M878 572 v-28"/><path d="M210 600 H790"/><circle cx="210" cy="600" r="4"/><circle cx="790" cy="600" r="4"/><text x="210" y="622">DEVELOPER</text><text x="700" y="622">INSTITUTIONAL CAPITAL</text></motion.g>
   </motion.svg>;
 }
 
@@ -36,13 +40,22 @@ function DayRail({ visible }) {
   return <motion.div className="ra-day-rail" style={{ opacity: visible }}><span>Morning</span><span>Midday</span><span>Evening</span><i /></motion.div>;
 }
 
+function ProfileItem({ label, value, index, count, storyProgress, releaseProgress }) {
+  const revealStart = .28 + index * (.5 / Math.max(1, count - 1));
+  const exitStart = (count - 1 - index) * (.62 / Math.max(1, count - 1));
+  const opacity = useTransform(() => {
+    const reveal = Math.max(0, Math.min(1, (storyProgress.get() - revealStart) / .14));
+    const leaving = 1 - Math.max(0, Math.min(1, (releaseProgress.get() - exitStart) / .18));
+    return reveal * leaving;
+  });
+  const y = useTransform(() => 12 * (1 - opacity.get()));
+  return <motion.div style={{ opacity, y }}><span>{label}</span><strong>{value}</strong></motion.div>;
+}
+
 function PersistentProfile({ model, storyProgress, releaseProgress }) {
   const connector = useTransform(() => Math.max(0, Math.min(1, storyProgress.get() * 1.5)) * (1 - releaseProgress.get()));
-  return <aside className="ra-profile" aria-label={`${model.label} profile`}><motion.i className="ra-profile-connector" style={{ scaleX: connector }} />{model.profile.map(([label, value], index) => {
-    const itemOpacity = useTransform(storyProgress, [.34 + index * .13, .48 + index * .13], [0, 1], { clamp: true });
-    const itemY = useTransform(storyProgress, [.34 + index * .13, .48 + index * .13], [12, 0], { clamp: true });
-    return <motion.div key={label} style={{ opacity: itemOpacity, y: itemY }}><span>{label}</span><strong>{value}</strong></motion.div>;
-  })}</aside>;
+  const statusOpacity = useTransform(storyProgress, [.78, .94], [0, 1], { clamp: true });
+  return <aside className="ra-profile" aria-label={`${model.label} profile`}><motion.i className="ra-profile-connector" style={{ scaleX: connector }} />{model.profile.map(([label, value], index) => <ProfileItem key={label} label={label} value={value} index={index} count={model.profile.length} storyProgress={storyProgress} releaseProgress={releaseProgress} />)}{model.id === "exit" && <motion.div className="ra-asset-status" style={{ opacity: statusOpacity }}><span>Asset status</span><strong><Check /> Institutional</strong><em>Exit ready</em></motion.div>}</aside>;
 }
 
 function StructureRail({ models, activeIndex, onSeekModel, visible = 1 }) {
@@ -81,8 +94,8 @@ function ClosingScene({ closingProgress, exitProgress }) {
   const assetScale = useTransform(() => .78 - exitProgress.get() * .16);
   const assetY = useTransform(() => closingProgress.get() * 20 + exitProgress.get() * 70);
   const lineScale = useTransform(() => Math.max(closingProgress.get(), exitProgress.get()));
-  const washHeight = useTransform(exitProgress, [0, 1], ["0%", "100%"]);
-  return <div className="ra-closing"><motion.div className="ra-closing-copy" style={{ opacity: copyOpacity }}><p>One asset.</p><h3>More than one<br />way forward.</h3><span>Structure the opportunity around your capital horizon and operating priorities.</span><a href="mailto:info@devyogprojects.co.in?subject=Revenue%20architecture%20discussion">Discuss the right structure <ArrowRight /></a></motion.div><motion.div className="ra-closing-asset" style={{ scale: assetScale, y: assetY }}><MasterAsset /></motion.div><motion.i className="ra-horizon-line" style={{ scaleX: lineScale }} /><motion.div className="ra-next-section-wash" style={{ height: washHeight }} /></div>;
+  const railOpacity = useTransform(closingProgress, [.55, .9], [0, 1], { clamp: true });
+  return <div className="ra-closing"><motion.div className="ra-closing-copy" style={{ opacity: copyOpacity }}><p>One asset. Endless potential.</p><h3>More than<br />one way<br />forward.</h3><span>Structure the opportunity around your capital horizon and operating priorities.</span><div className="ra-closing-actions"><a href="mailto:info@devyogprojects.co.in?subject=Revenue%20architecture%20discussion">Discuss the right structure <ArrowRight /></a><a className="is-secondary" href="#investment-dossier">Request dossier <ArrowUpRight /></a></div></motion.div><motion.div className="ra-closing-asset" style={{ scale: assetScale, y: assetY }}><i className="ra-closing-arc" aria-hidden="true" /><MasterAsset /></motion.div><motion.i className="ra-horizon-line" style={{ scaleX: lineScale }} /><motion.div className="ra-final-rail" style={{ opacity: railOpacity }}>{[["Architecture","Purpose-led design"],["Place","Connected advantage"],["Demand","Enduring relevance"],["Relevance","Built for what comes next"]].map(([label,value])=><span key={label}><b>{label}</b>{value}</span>)}</motion.div></div>;
 }
 
 export function RevenueArchitectureStage({ scene, phase, activeIndex, sourceIndex, models, onSeekModel, reducedMotion, introProgress, storyProgress, settleProgress, holdProgress, releaseProgress, transitionProgress, comparisonEntryProgress, comparisonProgress, closingProgress, sectionExitProgress }) {
