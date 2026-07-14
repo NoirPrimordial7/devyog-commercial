@@ -50,7 +50,7 @@ export function InvestorModelsSection() {
   });
 
   useEffect(() => {
-    ["/assets/revenue-architecture/revenue-master.webp", revenueModels[0].image].forEach((src) => {
+    ["/assets/revenue-architecture/revenue-master.webp"].forEach((src) => {
       const image = new Image(); image.src = src;
     });
   }, []);
@@ -69,7 +69,7 @@ export function InvestorModelsSection() {
 
   return (
     <section ref={sectionRef} id="investor-options" className="revenue-architecture" aria-labelledby="revenue-architecture-title">
-      <RevenueArchitectureStage scene={view.scene} phase={view.phase} models={revenueModels} onSeekModel={seek} reducedMotion={reducedMotion} />
+      <RevenueArchitectureStage scene={view.scene} phase={view.phase} models={revenueModels} onSeekModel={seek} reducedMotion={reducedMotion} progress={scrollYProgress} />
     </section>
   );
 }

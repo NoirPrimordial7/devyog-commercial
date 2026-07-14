@@ -9,8 +9,6 @@ export const revenueModels = [
     profile: [["Income character", "Stable"], ["Investor involvement", "Lower"], ["Occupancy structure", "Long duration"]],
     closing: "Built for investors who value consistency before complexity.",
     comparison: "Stable continuity",
-    image: "/assets/revenue-architecture/revenue-stability.webp",
-    imageSmall: "/assets/revenue-architecture/revenue-stability-small.webp",
   },
   {
     id: "anchor",
@@ -22,8 +20,6 @@ export const revenueModels = [
     profile: [["Base occupancy", "Established"], ["Ramp-up exposure", "Reduced"], ["Remaining potential", "Retained"]],
     closing: "A stable foundation without surrendering the rest of the opportunity.",
     comparison: "Secure foundation",
-    image: "/assets/revenue-architecture/revenue-anchor.webp",
-    imageSmall: "/assets/revenue-architecture/revenue-anchor-small.webp",
   },
   {
     id: "blended",
@@ -35,8 +31,6 @@ export const revenueModels = [
     profile: [["Income character", "Diversified"], ["Activity window", "Extended"], ["Operational complexity", "Higher"]],
     closing: "Different revenue rhythms supporting one connected asset.",
     comparison: "Diversified activity",
-    image: "/assets/revenue-architecture/revenue-blended.webp",
-    imageSmall: "/assets/revenue-architecture/revenue-blended-small.webp",
   },
   {
     id: "exit",
@@ -48,8 +42,6 @@ export const revenueModels = [
     profile: [["Value event", "Transfer"], ["Asset condition", "Stabilised"], ["Buyer profile", "Institutional"]],
     closing: "From development opportunity to an investable institutional asset.",
     comparison: "Structured transfer",
-    image: "/assets/revenue-architecture/revenue-exit.webp",
-    imageSmall: "/assets/revenue-architecture/revenue-exit-small.webp",
   },
 ];
 

@@ -4,10 +4,8 @@ import { ArrowDown, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { capitalProfile, revenueAssets } from "./revenueArchitectureData";
 
-function RevenuePicture({ model, master = false }) {
-  const src = master ? revenueAssets.master : model.image;
-  const small = master ? revenueAssets.masterSmall : model.imageSmall;
-  return <picture><source media="(max-width: 560px)" srcSet={small} /><img src={src} width="1536" height="1024" alt={master ? "Devyog mixed-use commercial development" : `${model.label} configuration of the Devyog commercial development`} /></picture>;
+function RevenuePicture({ decorative = false }) {
+  return <picture><source media="(max-width: 560px)" srcSet={revenueAssets.masterSmall} /><img src={revenueAssets.master} width="1536" height="1024" alt={decorative ? "" : "Devyog mixed-use commercial development architectural model"} /></picture>;
 }
 
 function SegmentedProfile() {
@@ -18,9 +16,9 @@ function SegmentedProfile() {
 
 export function RevenueArchitectureMobile({ models }) {
   return <section id="investor-options" className="revenue-architecture-mobile" aria-labelledby="revenue-architecture-mobile-title">
-    <header className="ram-intro"><p>05 — Revenue architecture</p><h2 id="revenue-architecture-mobile-title">One asset.<br /><em>Four ways to configure value.</em></h2><span>The destination remains constant. What changes is how occupancy, income and ownership are structured.</span><RevenuePicture master /><a href="#ram-stability">Begin with stability <ArrowDown /></a></header>
-    {models.map((model, index) => <article className="ram-model" id={`ram-${model.id}`} key={model.id}><div className="ram-copy"><p>{model.number} — {model.label}</p><h3>{model.title.map((line) => <span key={line}>{line}</span>)}</h3><span>{model.description}</span></div><RevenuePicture model={model} /><dl>{model.profile.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><blockquote>{model.closing}</blockquote>{index < models.length - 1 && <a href={`#ram-${models[index + 1].id}`}>Continue to {models[index + 1].selector} <ArrowDown /></a>}</article>)}
-    <section className="ram-comparison"><p>Four structures. One asset.</p><h2>What should the asset do for your capital?</h2><span>Explore how different structures prioritise stability, involvement, flexibility and exit.</span><div className="ram-plates">{models.map((model) => <a href={`#ram-${model.id}`} key={model.id}><RevenuePicture model={model} /><strong>{model.label}</strong><small>{model.comparison}</small></a>)}</div><SegmentedProfile /></section>
-    <footer className="ram-closing"><RevenuePicture master /><p>One asset. Four possible structures.</p><h2>Shape the structure around your capital.</h2><span>The appropriate approach depends on investment horizon, operating involvement and commercial objectives.</span><a className="ram-primary" href="mailto:info@devyogprojects.co.in?subject=Revenue%20architecture%20discussion">Discuss the right structure <ArrowRight /></a><a href="#investment-dossier">Return to the investment dossier</a></footer>
+    <header className="ram-intro"><p>05 — Revenue architecture</p><h2 id="revenue-architecture-mobile-title">One destination.<br /><em>Four ways to structure value.</em></h2><span>The destination remains constant. What changes is how occupancy, income and ownership are structured.</span><RevenuePicture /><a href="#ram-stability">Begin with stability <ArrowDown /></a></header>
+    {models.map((model, index) => <article className="ram-model" data-model={model.id} id={`ram-${model.id}`} key={model.id}><div className="ram-copy"><p>{model.number} — {model.label}</p><h3>{model.title.map((line) => <span key={line}>{line}</span>)}</h3><span>{model.description}</span></div><div className="ram-asset"><RevenuePicture decorative /><i /><b>{model.selector}</b></div><dl>{model.profile.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><blockquote>{model.closing}</blockquote>{index < models.length - 1 && <a href={`#ram-${models[index + 1].id}`}>Continue to {models[index + 1].selector} <ArrowDown /></a>}</article>)}
+    <section className="ram-comparison"><p>Four structures. One asset.</p><h2>What should the asset do for your capital?</h2><span>Explore how different structures prioritise stability, involvement, flexibility and exit.</span><div className="ram-lenses">{models.map((model) => <a href={`#ram-${model.id}`} key={model.id}><span>{model.number}</span><strong>{model.label}</strong><small>{model.comparison}</small></a>)}</div><SegmentedProfile /></section>
+    <footer className="ram-closing"><RevenuePicture decorative /><p>One asset. Endless potential.</p><h2>More than one way forward.</h2><span>The appropriate structure depends on capital horizon, operating involvement and return objectives.</span><a className="ram-primary" href="mailto:info@devyogprojects.co.in?subject=Revenue%20architecture%20discussion">Discuss the right structure <ArrowRight /></a><a href="#investment-dossier">Return to the investment dossier</a></footer>
   </section>;
 }
