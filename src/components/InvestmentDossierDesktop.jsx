@@ -22,10 +22,10 @@ function SpreadLayer({ chapter, index, progress, activeIndex }) {
   const localProgress = useTransform(progress, timeline.story, [0, 1], { clamp: true });
   const visibleStart = index === 0 ? dossierTimeline.open[0] + 0.005 : chapterThresholds[index - 1];
   const closingDuration = dossierTimeline.close[1] - dossierTimeline.close[0];
-  const visibleEnd = index < 3 ? chapterThresholds[index] : dossierTimeline.close[0] + closingDuration * 0.72;
+  const visibleEnd = index < 3 ? chapterThresholds[index] : dossierTimeline.handoff.withdrawal[1];
   const opacity = useTransform(progress, [visibleStart - 0.012, visibleStart + 0.012, visibleEnd, visibleEnd + 0.016], [0, 1, 1, 0]);
-  const rightFadeStart = timeline.turn ? timeline.turn[0] : dossierTimeline.close[0] + closingDuration * 0.6;
-  const rightFadeEnd = timeline.turn ? timeline.turn[0] + (timeline.turn[1] - timeline.turn[0]) * 0.16 : dossierTimeline.close[0] + closingDuration * 0.76;
+  const rightFadeStart = timeline.turn ? timeline.turn[0] : dossierTimeline.handoff.withdrawal[0];
+  const rightFadeEnd = timeline.turn ? timeline.turn[0] + (timeline.turn[1] - timeline.turn[0]) * 0.16 : dossierTimeline.handoff.withdrawal[1];
   const rightOpacity = useTransform(progress, [rightFadeStart, rightFadeEnd], [1, 0], { clamp: true });
 
   return (
@@ -101,29 +101,59 @@ function ModernCover({ progress, reducedMotion }) {
   const closeDuration = dossierTimeline.close[1] - closeStart;
   const rightRotate = useTransform(
     progress,
-    [0, start, start + openDuration * 0.28, start + openDuration * 0.72, end, closeStart, closeStart + closeDuration * 0.28, closeStart + closeDuration * 0.72, 1],
-    [0, 0, reducedMotion ? -3 : -10, reducedMotion ? -7 : -170, reducedMotion ? -8 : -180, reducedMotion ? -8 : -180, reducedMotion ? -7 : -170, reducedMotion ? -3 : -10, 0],
+    [0, start, start + openDuration * 0.28, start + openDuration * 0.72, end, closeStart, closeStart + closeDuration * 0.28, closeStart + closeDuration * 0.72, dossierTimeline.close[1], 1],
+    [0, 0, reducedMotion ? -3 : -10, reducedMotion ? -7 : -170, reducedMotion ? -8 : -180, reducedMotion ? -8 : -180, reducedMotion ? -7 : -170, reducedMotion ? -3 : -10, 0, 0],
   );
   const coverOpacity = useTransform(progress, [0, end - 0.008, end + 0.008, dossierTimeline.close[0] - 0.008, dossierTimeline.close[0] + 0.008, 1], [1, 1, 0, 0, 1, 1]);
+  const coverCopyOpacity = useTransform(progress, [dossierTimeline.handoff.close[0], dossierTimeline.handoff.metamorphosis[0], dossierTimeline.handoff.metamorphosis[1]], [1, .58, 0]);
   const sweepX = useTransform(progress, [dossierTimeline.approach[0], start], ["-120%", "140%"]);
 
   return (
     <motion.div className="folio-cover-system" style={{ opacity: coverOpacity }} aria-hidden="true">
       <motion.div className="folio-cover-half folio-cover-half--right" style={{ rotateY: rightRotate }}>
-        <div className="folio-cover-front">
+        <motion.div className="folio-cover-front" style={{ "--cover-copy-opacity": coverCopyOpacity }}>
           <p className="folio-cover-kicker">DEVYOG</p>
           <h3>Investment<br />dossier</h3>
           <i />
           <p>Four forces shaping<br />one connected commercial destination.</p>
           <span>Architecture / Place / Demand / Relevance</span>
           <motion.b className="folio-cover-sweep" style={{ x: sweepX }} />
-        </div>
+        </motion.div>
         <div className="folio-cover-liner">
           <span>DEVYOG / INVESTMENT DOSSIER</span>
         </div>
       </motion.div>
     </motion.div>
   );
+}
+
+function DossierCapitalHandoff({ progress, reducedMotion }) {
+  const horizonOpacity = useTransform(progress, [dossierTimeline.handoff.close[0], dossierTimeline.handoff.close[1], dossierTimeline.handoff.metamorphosis[0]], [0, 0, 1]);
+  const horizonScale = useTransform(progress, dossierTimeline.handoff.metamorphosis, [.12, 1]);
+  const assetOpacity = useTransform(progress, [dossierTimeline.handoff.metamorphosis[0], dossierTimeline.handoff.emergence[0], dossierTimeline.handoff.emergence[1]], [0, .5, 1]);
+  const assetClip = useTransform(progress, dossierTimeline.handoff.emergence, ["inset(100% 0 0 0)", "inset(0% 0 0 0)"]);
+  const assetY = useTransform(progress, dossierTimeline.handoff.emergence, [reducedMotion ? 0 : 34, 0]);
+  const assetScale = useTransform(progress, [dossierTimeline.handoff.emergence[0], dossierTimeline.handoff.settle[1]], [.84, 1]);
+  const railsOpacity = useTransform(progress, [dossierTimeline.handoff.emergence[0], dossierTimeline.handoff.settle[1]], [0, 1]);
+  const railsY = useTransform(progress, dossierTimeline.handoff.emergence, [20, 0]);
+  const roomOpacity = useTransform(progress, [dossierTimeline.handoff.withdrawal[0], dossierTimeline.handoff.settle[0]], [0, 1]);
+  const introOpacity = useTransform(progress, [dossierTimeline.handoff.emergence[0] + .008, dossierTimeline.handoff.settle[1]], [0, 1]);
+
+  return <motion.div className="journey-handoff" style={{ opacity: roomOpacity }} aria-hidden="true">
+    <div className="journey-handoff-core">
+      <motion.div className="journey-horizon-line" style={{ opacity: horizonOpacity, scaleX: horizonScale }} />
+      <motion.picture className="journey-handoff-asset" style={{ opacity: assetOpacity, clipPath: assetClip, y: assetY, scale: assetScale }}>
+        <source media="(max-width:1100px)" srcSet="/assets/revenue-architecture-v2/revenue-master-small.webp" />
+        <img src="/assets/revenue-architecture-v2/revenue-master.webp" width="2304" height="1536" alt="" />
+      </motion.picture>
+    </div>
+    <motion.div className="journey-handoff-copy" style={{ opacity: introOpacity }}>
+      <p>05 — Revenue architecture</p>
+      <h2>One asset.<br /><em>Four capital structures.</em></h2>
+      <span>The development remains constant. What changes is how occupancy, income and ownership align with capital priorities.</span>
+    </motion.div>
+    <motion.div className="journey-handoff-rails" style={{ opacity: railsOpacity, y: railsY }}>{["Stability", "Anchor", "Diversification", "Exit"].map((label, index) => <span key={label}><b>0{index + 1}</b>{label}<i /></span>)}</motion.div>
+  </motion.div>;
 }
 
 
@@ -146,26 +176,29 @@ export function InvestmentDossierDesktop() {
     setActiveIndex((current) => current === next ? current : next);
   });
 
+
   const deskX = useTransform(pointerX, [-1, 1], [-5, 5]);
   const deskY = useTransform(pointerY, [-1, 1], [-3, 3]);
   const openingDuration = dossierTimeline.open[1] - dossierTimeline.open[0];
   const closingDuration = dossierTimeline.close[1] - dossierTimeline.close[0];
   const shellOpenEnd = dossierTimeline.open[0] + openingDuration * 0.36;
-  const shellCloseStart = dossierTimeline.close[0] + closingDuration * 0.72;
-  const folioX = useTransform(progress, [0, dossierTimeline.approach[1], dossierTimeline.open[0], shellOpenEnd, dossierTimeline.close[0], shellCloseStart, 1], ["-25%", "-25%", "-25%", "0%", "0%", "0%", "-25%"]);
-  const folioScaleX = useTransform(progress, [0, dossierTimeline.open[0], shellOpenEnd, shellCloseStart, 1], [1.03, 1.03, 1, 1, 1.03]);
-  const folioScaleY = useTransform(progress, [0, dossierTimeline.entry[1], dossierTimeline.approach[1], dossierTimeline.open[0], shellOpenEnd, shellCloseStart, 1], [0.73, 0.73, 0.8, 0.8, 1, 1, 0.73]);
-  const arrivalRotateX = useTransform(progress, [0, dossierTimeline.approach[1], dossierTimeline.open[1], dossierTimeline.close[0], 1], [7, 4.5, 0, 0, 7]);
-  const arrivalRotateZ = useTransform(progress, [0, dossierTimeline.approach[1], dossierTimeline.open[1], dossierTimeline.close[0], 1], [-1, -0.65, 0, 0, -1]);
-  const arrivalY = useTransform(progress, [0, dossierTimeline.approach[1], dossierTimeline.open[1], dossierTimeline.close[0], 1], [38, 20, 0, 0, 34]);
+  const shellCloseStart = dossierTimeline.close[0] + closingDuration * 0.38;
+  const folioX = useTransform(progress, [0, dossierTimeline.approach[1], dossierTimeline.open[0], shellOpenEnd, dossierTimeline.close[0], shellCloseStart, dossierTimeline.close[1], 1], ["-25%", "-25%", "-25%", "0%", "0%", "0%", "-25%", "-25%"]);
+  const folioScaleX = useTransform(progress, [0, dossierTimeline.open[0], shellOpenEnd, shellCloseStart, 1], [1.03, 1.03, 1, 1, .9]);
+  const folioScaleY = useTransform(progress, [0, dossierTimeline.entry[1], dossierTimeline.approach[1], dossierTimeline.open[0], shellOpenEnd, shellCloseStart, 1], [0.73, 0.73, 0.8, 0.8, 1, 1, .9]);
+  const arrivalRotateX = useTransform(progress, [0, dossierTimeline.approach[1], dossierTimeline.open[1], dossierTimeline.close[0], 1], [7, 4.5, 0, 0, 0]);
+  const arrivalRotateZ = useTransform(progress, [0, dossierTimeline.approach[1], dossierTimeline.open[1], dossierTimeline.close[0], 1], [-1, -0.65, 0, 0, 0]);
+  const arrivalY = useTransform(progress, [0, dossierTimeline.approach[1], dossierTimeline.open[1], dossierTimeline.close[0], 1], [38, 20, 0, 0, -28]);
   const interiorClip = useTransform(progress, [0, dossierTimeline.open[0], shellOpenEnd, shellCloseStart, 1], ["inset(0 0 0 50%)", "inset(0 0 0 50%)", "inset(0 0 0 0%)", "inset(0 0 0 0%)", "inset(0 0 0 50%)"]);
   const interiorHiddenAt = shellCloseStart + closingDuration * 0.14;
   const interiorOpacity = useTransform(progress, [0, dossierTimeline.open[0], shellOpenEnd, shellCloseStart, interiorHiddenAt, 1], [0, 0, 1, 1, 0, 0]);
   const tabsOpacity = useTransform(progress, [dossierTimeline.open[1] - 0.006, dossierTimeline.open[1] + 0.012, dossierTimeline.close[0], dossierTimeline.close[0] + 0.018], [0, 1, 1, 0]);
   const shadowClip = useTransform(progress, [0, dossierTimeline.open[0], shellOpenEnd, shellCloseStart, interiorHiddenAt, 1], ["inset(0 0 0 50%)", "inset(0 0 0 50%)", "inset(0 0 0 0%)", "inset(0 0 0 0%)", "inset(0 0 0 50%)", "inset(0 0 0 50%)"]);
   const shadowOpacity = useTransform(progress, [0, dossierTimeline.open[1], dossierTimeline.close[0], 1], [0.86, 0.68, 0.68, 0.88]);
-  const stageOpacity = useTransform(progress, [0, 0.985, 1], [1, 1, 0]);
-  const closingOpacity = useTransform(progress, [dossierTimeline.close[0] + 0.02, 0.98], [0, 1]);
+  // The closed physical dossier remains visible beneath the shared Revenue Architecture handoff.
+  const deskOpacity = useTransform(progress, [0, dossierTimeline.handoff.withdrawal[0], dossierTimeline.handoff.metamorphosis[1], 1], [1, 1, .18, 0]);
+  const folioOpacity = useTransform(progress, [0, dossierTimeline.handoff.close[1], dossierTimeline.handoff.emergence[0], dossierTimeline.handoff.emergence[1]], [1, 1, .78, 0]);
+  const closingOpacity = useTransform(progress, [dossierTimeline.handoff.finalHold[0] + .025, dossierTimeline.handoff.finalHold[1] - .008, dossierTimeline.handoff.withdrawal[0]], [0, 1, 0]);
 
   useEffect(() => {
     return () => {
@@ -205,11 +238,12 @@ export function InvestmentDossierDesktop() {
     >
       <h2 id="investment-dossier-desktop-title" className="sr-only">Interactive Devyog investment dossier</h2>
       <div className="folio-stage">
-        <motion.div className="folio-desk" style={{ x: deskX, y: deskY, opacity: stageOpacity }} aria-hidden="true" />
+        <motion.div className="folio-desk" style={{ x: deskX, y: deskY, opacity: deskOpacity }} aria-hidden="true" />
         <div className="folio-object-anchor">
           <motion.div
             className="folio-object"
             style={{
+              opacity: folioOpacity,
               x: reducedMotion ? 0 : folioX,
               scaleX: reducedMotion ? 1 : folioScaleX,
               scaleY: reducedMotion ? 1 : folioScaleY,
@@ -235,8 +269,9 @@ export function InvestmentDossierDesktop() {
           </motion.div>
         </div>
         {dossierTimeline.chapters.map((chapter, index) => <ReadingHold key={chapter.hold[0]} progress={progress} index={index} />)}
+        <DossierCapitalHandoff progress={progress} reducedMotion={reducedMotion} />
         <motion.p className="folio-closing-note" style={{ opacity: closingOpacity }}>
-          Four forces. One connected commercial destination.
+          Continue to the capital structure <ArrowDown size={13} />
         </motion.p>
       </div>
     </section>
